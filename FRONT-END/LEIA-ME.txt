@@ -1,0 +1,10 @@
+EDUCONTROL (front + back) - pasta compartilhada
+
+front_sanico\  -> React (porta 5173)
+back-end\      -> Spring Boot, Java 21 (porta 8080)
+
+Rodar o back:   cd back-end   e   mvnw.cmd spring-boot:run
+Rodar o front:  cd front_sanico   e   npm install   e   npm run dev
+
+O arquivo .env (chave do Gemini) NAO foi copiado de proposito, porque esta pasta
+e visivel para todas as contas do PC. Copie .env.example para .env e coloque a chave.
