@@ -48,7 +48,17 @@ public class PresencaController {
         return presencaService.registrarPresenca(uid);
     }
 
+    @PostMapping("/rfid")
+    public String registrarPresencaRFID(@RequestBody Map<String, String> dados) {
 
+        String uid = dados.get("uid");
+
+        if (uid == null || uid.isBlank()) {
+            return "UID não informado";
+        }
+
+        return presencaService.registrarPresenca(uid);
+    }
 
 
 }
