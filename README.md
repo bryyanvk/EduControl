@@ -1,8 +1,18 @@
 # 🎓 EduControl — Secretaria Inteligente
 
-\<p align="center">   \<strong>Uma solução inteligente para modernizar a gestão escolar.\</strong>   \<br />   Automatizando processos, organizando informações e transformando dados em decisões. \</p>
+<p align="center">
+  <strong>Uma solução inteligente para modernizar a gestão escolar.</strong>
+  <br>
+  Automatizando processos, organizando informações e transformando dados em decisões.
+</p>
 
-\<p align="center">   \<img src="[https://img.shields.io/badge/Status-Em%20Desenvolvimento-blue?style=for-the-badge](https://img.shields.io/badge/Status-Em%20Desenvolvimento-blue?style=for-the-badge)" />   \<img src="[https://img.shields.io/badge/Projeto-TCC-purple?style=for-the-badge](https://img.shields.io/badge/Projeto-TCC-purple?style=for-the-badge)" />   \<img src="[https://img.shields.io/badge/Java-Backend-orange?style=for-the-badge&logo=openjdk](https://img.shields.io/badge/Java-Backend-orange?style=for-the-badge\&logo=openjdk)" />   \<img src="[https://img.shields.io/badge/React-Frontend-61DAFB?style=for-the-badge&logo=react](https://img.shields.io/badge/React-Frontend-61DAFB?style=for-the-badge\&logo=react)" />   \<img src="[https://img.shields.io/badge/PostgreSQL-Database-4169E1?style=for-the-badge&logo=postgresql](https://img.shields.io/badge/PostgreSQL-Database-4169E1?style=for-the-badge\&logo=postgresql)" /> \</p>
+<p align="center">
+  <img src="https://img.shields.io/badge/Status-Em%20Desenvolvimento-blue?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Projeto-TCC-purple?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Java-Backend-orange?style=for-the-badge&logo=openjdk" />
+  <img src="https://img.shields.io/badge/React-Frontend-61DAFB?style=for-the-badge&logo=react" />
+  <img src="https://img.shields.io/badge/PostgreSQL-Database-4169E1?style=for-the-badge&logo=postgresql" />
+</p>
 
 ---
 
