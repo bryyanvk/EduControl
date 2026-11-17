@@ -57,16 +57,14 @@ Além disso, conta com uma proposta de Secretaria Inteligente, utilizando inteli
 - Spring Boot
 - Maven
 - Spring Data JPA
-- Spring Security
 
 ### Banco de dados
 
 - PostgreSQL
-- Flyway
 
 ### Hardware e comunicação
 
-- ESP32
+- RASP PICO 2
 - RFID MFRC522
 - Módulo Ethernet ENC28J60
 - Comunicação SPI
@@ -75,10 +73,18 @@ Além disso, conta com uma proposta de Secretaria Inteligente, utilizando inteli
 ### Ferramentas
 
 - Visual Studio Code
+- Kiro IDE
 - IntelliJ IDEA
 - Git e GitHub
-- Docker
+- pgAdmin
 - Postman
+
+### IA's para consulta 
+
+- ChatGPT
+- Claude
+- Perplexity
+- Gemini
 
 ## 🏗️ Arquitetura do projeto
 
