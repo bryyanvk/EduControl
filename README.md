@@ -93,7 +93,7 @@ O EduControl utiliza uma arquitetura integrada, conectando hardware, backend, ba
 ```mermaid
 flowchart TD
     A[Cartão RFID] --> B[Leitor MFRC522]
-    B --> C[ESP32]
+    B --> C[PICO 2]
     C --> D[Comunicação Ethernet]
     D --> E[Backend Java - Spring Boot]
     E --> F[(PostgreSQL)]
@@ -105,7 +105,7 @@ flowchart TD
 ### Fluxo de funcionamento
 
 1. O estudante aproxima seu cartão RFID do leitor.
-2. O ESP32 identifica o cartão.
+2. O RASP identifica o cartão.
 3. As informações são encaminhadas pela comunicação Ethernet.
 4. O backend processa o registro de frequência.
 5. Os dados são armazenados no PostgreSQL.
@@ -222,10 +222,10 @@ Mais do que um sistema de cadastro, a proposta é construir uma plataforma capaz
 
 ---
 
-\<p align="center">
-&#x20; \<strong>🎓 EduControl — Secretaria Inteligente\</strong>
-&#x20; \<br />
-&#x20; \<em>Tecnologia conectando pessoas, dados e educação.\</em>
-&#x20; \<br />\<br />
-&#x20; Desenvolvido como projeto acadêmico de TCC.
-\</p>
+<p align="center">
+  <strong>🎓 EduControl — Secretaria Inteligente</strong>
+  <br>
+  <em>Tecnologia conectando pessoas, dados e educação.</em>
+  <br><br>
+  Desenvolvido como projeto acadêmico de TCC.
+</p>
