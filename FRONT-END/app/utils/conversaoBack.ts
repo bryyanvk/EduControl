@@ -1,3 +1,4 @@
+
 import { calcularIdade, formatarCpf, apenasDigitos } from "~/utils/validacoes";
 
 export function statusDoBack(status: string) {
@@ -22,9 +23,13 @@ export function statusParaBack(status: string) {
 
 export function salaDoBack(salaBack: any) {
   let nomeDaTurma = "Sem turma";
-  if (salaBack.turma) {
-    nomeDaTurma = salaBack.turma.nome;
+
+  if (salaBack.turmas && salaBack.turmas.length > 0) {
+    nomeDaTurma = salaBack.turmas
+      .map((turma: any) => turma.nome)
+      .join(", ");
   }
+
   return {
     numero: salaBack.numero,
     nome: "Sala " + salaBack.numero,
@@ -46,26 +51,28 @@ export function turmaPeloNome(nome: string, turmas: any[]) {
 
 export const BACK_TEM_CAMPOS_DO_ALUNO = false;
 
-export function alunoParaBack(form: any, id: number, matricula: string, dataMatricula: string) {
-  const aluno: any = {
-    id: id,
+export function alunoParaBack(
+  form: any,
+  id: number,
+  matricula: string,
+  dataMatricula: string,
+  turmas: any[]
+) {
+  const turmaSelecionada = turmaPeloNome(form.turma, turmas);
+
+  return {
+    id,
     nome: form.nome.trim(),
-    matricula: matricula,
+    matricula,
     dataNascimento: form.dataNascimento,
-    cartao: { uid: form.cartao.trim(), ativo: true },
+    cartao: {
+      uid: form.cartao.trim(),
+      ativo: true,
+    },
+    turma: turmaSelecionada
+      ? { id: turmaSelecionada.id }
+      : null,
   };
-  if (BACK_TEM_CAMPOS_DO_ALUNO) {
-    aluno.dataMatricula = dataMatricula;
-    aluno.cpf = apenasDigitos(form.cpf);
-    aluno.turma = form.turma;
-    aluno.turno = form.turno;
-    aluno.responsavelNome = form.responsavelNome.trim();
-    aluno.parentesco = form.parentesco;
-    aluno.responsavelTelefone = apenasDigitos(form.responsavelTelefone);
-    aluno.responsavelEmail = form.responsavelEmail.trim();
-    aluno.endereco = form.endereco.trim();
-  }
-  return aluno;
 }
 
 function textoOuTraco(valor: any) {
@@ -77,11 +84,13 @@ function textoOuTraco(valor: any) {
 
 export function alunoDoBack(alunoBack: any) {
   let cartao = "";
+
   if (alunoBack.cartao) {
     cartao = alunoBack.cartao.uid;
   }
 
   let turma = "Sem turma";
+
   if (alunoBack.turma) {
     if (typeof alunoBack.turma === "string") {
       turma = alunoBack.turma;
@@ -91,21 +100,25 @@ export function alunoDoBack(alunoBack: any) {
   }
 
   let cpf = "";
+
   if (alunoBack.cpf) {
     cpf = formatarCpf(alunoBack.cpf);
   }
 
   let idade = 0;
+
   if (alunoBack.dataNascimento) {
     idade = calcularIdade(alunoBack.dataNascimento);
   }
 
   let dataMatricula = "";
+
   if (alunoBack.dataMatricula) {
     dataMatricula = alunoBack.dataMatricula;
   }
 
   let telefone = "";
+
   if (alunoBack.responsavelTelefone) {
     telefone = alunoBack.responsavelTelefone;
   }

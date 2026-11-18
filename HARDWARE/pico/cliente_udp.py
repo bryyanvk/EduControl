@@ -5,17 +5,16 @@ from time import ticks_ms, ticks_add, ticks_diff, sleep_ms
 import Ntw
 from dhcp import DHCPClient
 
-IP_SERVIDOR = bytes([192, 168, 2, 154])
+IP_SERVIDOR = bytes([172, 16, 30, 19])
 PORTA_SERVIDOR = 5005
 PORTA_CLIENTE = 5006
 
 
 def receber_resposta(pkt):
-
     mensagem = bytes(pkt.udp_data)
 
     print("\nResposta recebida do notebook:")
-    print(mensagem.decode("utf-8", errors="replace"))
+    print(mensagem.decode("utf-8"))
 
 
 print("================================")

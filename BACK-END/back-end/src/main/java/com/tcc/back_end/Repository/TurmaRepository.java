@@ -1,3 +1,4 @@
+
 package com.tcc.back_end.Repository;
 
 import com.tcc.back_end.Model.Turma;
@@ -11,28 +12,38 @@ public class TurmaRepository {
 
     private List<Turma> listaDeTurma = new ArrayList<>();
 
+    private Integer proximoId = 1;
+
     public List<Turma> getListaDeTurma() {
         return listaDeTurma;
     }
 
-    public String CadastrarTurma(Turma turma){
+    public String CadastrarTurma(Turma turma) {
+
+        turma.setId(proximoId++);
+
         this.listaDeTurma.add(turma);
 
         return "Turma cadastrada com sucesso!";
     }
 
-    public Turma BuscarTurma(Integer id){
-        for (Turma t : listaDeTurma){
-            if (t.getId().equals(id)){
+    public Turma BuscarTurma(Integer id) {
+
+        for (Turma t : listaDeTurma) {
+
+            if (t.getId().equals(id)) {
                 return t;
             }
         }
+
         return null;
     }
 
-    public String updateTurma(Integer id, Turma turmaUpdate){
-        for(Turma t: listaDeTurma){
-            if (t.getId().equals(id)){
+    public String updateTurma(Integer id, Turma turmaUpdate) {
+
+        for (Turma t : listaDeTurma) {
+
+            if (t.getId().equals(id)) {
 
                 t.setCurso(turmaUpdate.getCurso());
                 t.setNome(turmaUpdate.getNome());
@@ -41,17 +52,21 @@ public class TurmaRepository {
                 return "Dados da turma atualizados!";
             }
         }
+
         return "Turma não encontrada.";
     }
 
-    public String deleteTurma(Integer id){
-        for (Turma t : listaDeTurma){
-            if (t.getId().equals(id)){
-                listaDeTurma.remove(t);
+    public String deleteTurma(Integer id) {
 
-                return "Turma deletada com sucesso!";
-            }
+        Turma turma = BuscarTurma(id);
+
+        if (turma != null) {
+
+            listaDeTurma.remove(turma);
+
+            return "Turma deletada com sucesso!";
         }
+
         return "Turma não encontrada";
     }
 }

@@ -3,38 +3,45 @@ package com.tcc.back_end.Repository;
 import com.tcc.back_end.Model.Aluno;
 import org.springframework.stereotype.Repository;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 
 @Repository
 public class AlunoRepository {
 
     private List<Aluno> listaDeAlunos = new ArrayList<>();
+    private int proximoId = 1;
 
+    public String CadastrarAluno(Aluno aluno) {
 
+        aluno.setId(proximoId++);
 
-    public String CadastrarAluno(Aluno aluno){
         this.listaDeAlunos.add(aluno);
 
         return "Aluno cadastrado!!";
     }
 
-    public List<Aluno> getListaDeAlunos(){
+    public List<Aluno> getListaDeAlunos() {
         return listaDeAlunos;
     }
 
+    public Aluno buscarAlunoPorId(int id) {
 
-    public Aluno buscarAlunoPorId(int id){
-        for (Aluno a : listaDeAlunos){
-            if(a.getId() == id){
+        for (Aluno a : listaDeAlunos) {
+            if (a.getId() == id) {
                 return a;
             }
         }
+
         return null;
     }
 
-    public String updateAluno(int id,Aluno alunoUpdate){
-        for (Aluno a : listaDeAlunos){
-            if(a.getId() == id) {
+    public String updateAluno(int id, Aluno alunoUpdate) {
+
+        for (Aluno a : listaDeAlunos) {
+
+            if (a.getId() == id) {
 
                 a.setNome(alunoUpdate.getNome());
                 a.setMatricula(alunoUpdate.getMatricula());
@@ -51,53 +58,71 @@ public class AlunoRepository {
                 a.setDataMatricula(alunoUpdate.getDataMatricula());
 
                 return "Dados do aluno atualizados com sucesso!";
-
             }
         }
+
         return "Aluno não encontrado!";
     }
 
-    public String deleteAluno(int id){
-        for(Aluno a : listaDeAlunos){
-            if(a.getId() == id) {
-                listaDeAlunos.remove(a);
+    public String deleteAluno(int id) {
 
+        Iterator<Aluno> iterator = listaDeAlunos.iterator();
+
+        while (iterator.hasNext()) {
+
+            Aluno a = iterator.next();
+
+            if (a.getId() == id) {
+                iterator.remove();
                 return "Aluno deletado com sucesso!";
             }
         }
 
-        return "aluno não encontrado!";
+        return "Aluno não encontrado!";
     }
 
+    public String identificarAlunoPeloCartao(String uid) {
 
-
-    public String identificarAlunoPeloCartao(String uid){
         for (Aluno a : listaDeAlunos) {
-            if (a.getCartao() != null && a.getCartao().getUid().equals(uid)) {
+
+            if (a.getCartao() != null &&
+                    a.getCartao().getUid() != null &&
+                    a.getCartao().getUid().equals(uid)) {
+
                 return a.getNome();
             }
-
         }
-        return "Aluno não encotrado";
+
+        return "Aluno não encontrado";
     }
 
-    public Aluno buscarAlunoPeloCartao(String uid){
+    public Aluno buscarAlunoPeloCartao(String uid) {
+
         for (Aluno a : listaDeAlunos) {
-            if (a.getCartao() != null && a.getCartao().getUid().equals(uid)) {
+
+            if (a.getCartao() != null &&
+                    a.getCartao().getUid() != null &&
+                    a.getCartao().getUid().equals(uid)) {
+
                 return a;
             }
-
         }
+
         return null;
     }
 
-    public boolean verificarCartaoAtivo(String uid){
+    public boolean verificarCartaoAtivo(String uid) {
+
         for (Aluno a : listaDeAlunos) {
-            if (a.getCartao() != null && a.getCartao().getUid().equals(uid)) {
+
+            if (a.getCartao() != null &&
+                    a.getCartao().getUid() != null &&
+                    a.getCartao().getUid().equals(uid)) {
+
                 return a.getCartao().isAtivo();
             }
-
         }
+
         return false;
     }
 }

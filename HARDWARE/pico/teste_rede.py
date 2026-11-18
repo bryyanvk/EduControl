@@ -1,7 +1,7 @@
 
 from machine import Pin, SPI
 from time import sleep
-import enc28j60
+from enc28j60 import enc28j60
 
 print("================================")
 print(" EDUCONTROL - TESTE ETHERNET")

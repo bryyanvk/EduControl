@@ -1,57 +1,76 @@
+
 package com.tcc.back_end.Controller;
 
-
-import com.tcc.back_end.Model.Aluno;
+import com.tcc.back_end.DTO.AlunoResponseDTO;
+import com.tcc.back_end.DTO.PresencaManualRequestDTO;
+import com.tcc.back_end.DTO.PresencaRequestDTO;
+import com.tcc.back_end.DTO.PresencaResponseDTO;
 import com.tcc.back_end.Model.Enum.StatusPresenca;
-import com.tcc.back_end.Model.RegistroPresença;
 import com.tcc.back_end.Service.PresencaService;
+
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalTime;
-import java.util.*;
+import java.util.List;
+
 @CrossOrigin(origins = "http://localhost:5173")
 @RestController
 @RequestMapping("/edu")
 public class PresencaController {
 
-    private PresencaService presencaService;
+    private final PresencaService presencaService;
 
-    public PresencaController(PresencaService presencaService){
+    public PresencaController(PresencaService presencaService) {
         this.presencaService = presencaService;
     }
 
     @GetMapping("/listpres")
-    public List<RegistroPresença> getListaRegistro(){ return presencaService.getListaRegistro();}
+    public List<PresencaResponseDTO> getListaRegistro() {
+        return presencaService.getListaRegistro();
+    }
 
     @GetMapping("/ind/{uid}")
-    public String identificarAlunoPeloCartao(@PathVariable String uid){
+    public String identificarAlunoPeloCartao(@PathVariable String uid) {
         return presencaService.identificarAlunoPeloCartao(uid);
     }
 
     @GetMapping("/verificar/{uid}")
-    public boolean verificarCartaoAtivo(@PathVariable String uid){
+    public boolean verificarCartaoAtivo(@PathVariable String uid) {
         return presencaService.verificarCartaoAtivo(uid);
     }
 
     @GetMapping("/hr/{horario}")
-    public StatusPresenca definirStatusPresença(@PathVariable LocalTime horario){
+    public StatusPresenca definirStatusPresença(
+            @PathVariable LocalTime horario) {
+
         return presencaService.definirStatusPresença(horario);
     }
 
     @GetMapping("/enc/{uid}")
-    public Aluno buscarAlunoPeloCartao(@PathVariable String uid){
-        return presencaService.buscarAlunoPeloCartao(uid);
+    public ResponseEntity<AlunoResponseDTO> buscarAlunoPeloCartao(
+            @PathVariable String uid) {
+
+        AlunoResponseDTO aluno =
+                presencaService.buscarAlunoPeloCartao(uid);
+
+        if (aluno == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.ok(aluno);
     }
 
-    @GetMapping("reg/{uid}")
-    public String registrarPresenca(@PathVariable String uid){
+    @GetMapping("/reg/{uid}")
+    public String registrarPresenca(@PathVariable String uid) {
         return presencaService.registrarPresenca(uid);
     }
 
     @PostMapping("/rfid")
-    public String registrarPresencaRFID(@RequestBody Map<String, String> dados) {
+    public String registrarPresencaRFID(
+            @RequestBody PresencaRequestDTO dados) {
 
-        String uid = dados.get("uid");
+        String uid = dados.getUid();
 
         if (uid == null || uid.isBlank()) {
             return "UID não informado";
@@ -60,5 +79,21 @@ public class PresencaController {
         return presencaService.registrarPresenca(uid);
     }
 
+    @PostMapping("/manual")
+    public ResponseEntity<String> registrarPresencaManual(
+            @RequestBody PresencaManualRequestDTO dados) {
 
+        try {
+            String resposta =
+                    presencaService.registrarPresencaManual(dados);
+
+            return ResponseEntity.ok(resposta);
+
+        } catch (org.springframework.web.server.ResponseStatusException erro) {
+
+            return ResponseEntity
+                    .status(erro.getStatusCode())
+                    .body(erro.getReason());
+        }
+    }
 }

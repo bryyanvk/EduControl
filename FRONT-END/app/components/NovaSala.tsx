@@ -1,10 +1,17 @@
+
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { CampoFormulario } from "~/components/CampoFormulario";
 import { enviarSala, editarSala } from "~/services/api";
 import { statusParaBack, turmaPeloNome } from "~/utils/conversaoBack";
 
-export function NovaSala({ aoFechar, aoSalvar, salasExistentes, turmas, salaEditando }: any) {
+export function NovaSala({
+  aoFechar,
+  aoSalvar,
+  salasExistentes,
+  turmas,
+  salaEditando,
+}: any) {
   let formInicial = {
     numero: "",
     capacidade: "",
@@ -12,6 +19,7 @@ export function NovaSala({ aoFechar, aoSalvar, salasExistentes, turmas, salaEdit
     turma: "Sem turma",
     status: "Disponível",
   };
+
   if (salaEditando) {
     formInicial = {
       numero: String(salaEditando.numero),
@@ -21,6 +29,7 @@ export function NovaSala({ aoFechar, aoSalvar, salasExistentes, turmas, salaEdit
       status: salaEditando.cor,
     };
   }
+
   const [form, setForm] = useState(formInicial);
   const [erros, setErros] = useState<any>({});
   const [salvando, setSalvando] = useState(false);
@@ -31,6 +40,7 @@ export function NovaSala({ aoFechar, aoSalvar, salasExistentes, turmas, salaEdit
         aoFechar();
       }
     }
+
     window.addEventListener("keydown", aoApertar);
     return () => window.removeEventListener("keydown", aoApertar);
   }, []);
@@ -45,6 +55,7 @@ export function NovaSala({ aoFechar, aoSalvar, salasExistentes, turmas, salaEdit
     const novosErros: any = {};
 
     const numero = parseInt(form.numero, 10);
+
     if (!salaEditando) {
       if (isNaN(numero) || String(numero) !== form.numero.trim()) {
         novosErros.numero = "Informe o número da sala com números inteiros.";
@@ -60,22 +71,37 @@ export function NovaSala({ aoFechar, aoSalvar, salasExistentes, turmas, salaEdit
     }
 
     const capacidade = parseInt(form.capacidade, 10);
+
     if (isNaN(capacidade) || String(capacidade) !== form.capacidade.trim()) {
       novosErros.capacidade = "Informe a capacidade com números inteiros.";
     } else if (capacidade < 1 || capacidade > 100) {
       novosErros.capacidade = "A capacidade deve ficar entre 1 e 100.";
     }
 
-    if (form.turma !== "Sem turma") {
+    if (form.turma === "Sem turma") {
+      novosErros.turma = "Selecione uma turma.";
+    } else {
       for (let i = 0; i < salasExistentes.length; i++) {
-        if (salasExistentes[i].turma === form.turma && salasExistentes[i].numero !== numero) {
-          novosErros.turma = "Essa turma já está em " + salasExistentes[i].nome + ".";
+        if (
+          salasExistentes[i].turma === form.turma &&
+          salasExistentes[i].numero !== numero
+        ) {
+          novosErros.turma =
+            "Essa turma já está em " + salasExistentes[i].nome + ".";
         }
       }
     }
 
     setErros(novosErros);
+
     if (Object.keys(novosErros).length > 0) {
+      return;
+    }
+
+    const turmaSelecionada = turmaPeloNome(form.turma, turmas);
+
+    if (!turmaSelecionada) {
+      setErros({ turma: "Não foi possível localizar essa turma no backend." });
       return;
     }
 
@@ -84,22 +110,34 @@ export function NovaSala({ aoFechar, aoSalvar, salasExistentes, turmas, salaEdit
       capacidade: capacidade,
       andar: form.andar,
       status: statusParaBack(form.status),
-      turma: turmaPeloNome(form.turma, turmas),
+      turmas: [
+        {
+          id: turmaSelecionada.id,
+        },
+      ],
     };
 
     setSalvando(true);
+
     let envio = enviarSala(salaParaEnviar);
+
     if (salaEditando) {
       envio = editarSala(numero, salaParaEnviar);
     }
+
     envio
       .then(() => {
         setSalvando(false);
-        aoSalvar({ nome: "Sala " + numero, editou: salaEditando ? true : false });
+        aoSalvar({
+          nome: "Sala " + numero,
+          editou: salaEditando ? true : false,
+        });
       })
-      .catch(() => {
+      .catch((erro: any) => {
         setSalvando(false);
-        setErros({ numero: "Não foi possível salvar. O back está rodando?" });
+        setErros({
+          numero: erro.message || "Não foi possível salvar a sala.",
+        });
       });
   }
 
@@ -116,8 +154,16 @@ export function NovaSala({ aoFechar, aoSalvar, salasExistentes, turmas, salaEdit
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-start justify-between gap-4">
-          <h2 className="text-xl font-bold">{salaEditando ? "Editar sala" : "Nova sala"}</h2>
-          <button type="button" onClick={aoFechar} aria-label="Fechar" className="cursor-pointer">
+          <h2 className="text-xl font-bold">
+            {salaEditando ? "Editar sala" : "Nova sala"}
+          </h2>
+
+          <button
+            type="button"
+            onClick={aoFechar}
+            aria-label="Fechar"
+            className="cursor-pointer"
+          >
             <X size={20} />
           </button>
         </div>
@@ -133,6 +179,7 @@ export function NovaSala({ aoFechar, aoSalvar, salasExistentes, turmas, salaEdit
               onChange={(e) => mudar("numero", e.target.value)}
             />
           </CampoFormulario>
+
           <CampoFormulario rotulo="Capacidade (alunos)" erro={erros.capacidade}>
             <input
               className="app-input w-full"
@@ -141,23 +188,39 @@ export function NovaSala({ aoFechar, aoSalvar, salasExistentes, turmas, salaEdit
               onChange={(e) => mudar("capacidade", e.target.value)}
             />
           </CampoFormulario>
+
           <CampoFormulario rotulo="Andar">
-            <select className="app-input w-full" value={form.andar} onChange={(e) => mudar("andar", e.target.value)}>
+            <select
+              className="app-input w-full"
+              value={form.andar}
+              onChange={(e) => mudar("andar", e.target.value)}
+            >
               <option>Térreo</option>
               <option>1º Andar</option>
               <option>2º Andar</option>
             </select>
           </CampoFormulario>
+
           <CampoFormulario rotulo="Turma" erro={erros.turma}>
-            <select className="app-input w-full" value={form.turma} onChange={(e) => mudar("turma", e.target.value)}>
+            <select
+              className="app-input w-full"
+              value={form.turma}
+              onChange={(e) => mudar("turma", e.target.value)}
+            >
               <option>Sem turma</option>
+
               {turmas.map((turma: any) => (
                 <option key={turma.id}>{turma.nome}</option>
               ))}
             </select>
           </CampoFormulario>
+
           <CampoFormulario rotulo="Status">
-            <select className="app-input w-full" value={form.status} onChange={(e) => mudar("status", e.target.value)}>
+            <select
+              className="app-input w-full"
+              value={form.status}
+              onChange={(e) => mudar("status", e.target.value)}
+            >
               <option>Disponível</option>
               <option>Em uso</option>
               <option>Em manutenção</option>
@@ -167,12 +230,27 @@ export function NovaSala({ aoFechar, aoSalvar, salasExistentes, turmas, salaEdit
 
         <div className="flex items-center justify-between gap-3">
           <p className="text-xs text-gray-500">Salvo no back-end.</p>
+
           <div className="flex gap-2">
-            <button type="button" onClick={aoFechar} className="cursor-pointer rounded-lg px-4 py-2 text-sm">
+            <button
+              type="button"
+              onClick={aoFechar}
+              className="cursor-pointer rounded-lg px-4 py-2 text-sm"
+            >
               Cancelar
             </button>
-            <button type="button" onClick={salvar} disabled={salvando} className="app-button-relatorio">
-              {salvando ? "Salvando..." : salaEditando ? "Salvar alterações" : "Salvar sala"}
+
+            <button
+              type="button"
+              onClick={salvar}
+              disabled={salvando}
+              className="app-button-relatorio"
+            >
+              {salvando
+                ? "Salvando..."
+                : salaEditando
+                  ? "Salvar alterações"
+                  : "Salvar sala"}
             </button>
           </div>
         </div>

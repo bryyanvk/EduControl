@@ -1,0 +1,37 @@
+
+### 1. Cadastrar turma
+POST http://localhost:8080/edu/cadturma
+Content-Type: application/json
+
+{
+  "nome": "3º Ano A",
+  "curso": "Ensino Médio",
+  "turno": "Matutino"
+}
+
+###
+
+### 2. Listar turmas
+GET http://localhost:8080/edu/listturma
+
+###
+
+### 3. Buscar turma
+GET http://localhost:8080/edu/encturma/1
+
+###
+
+### 4. Atualizar turma
+PUT http://localhost:8080/edu/updateturma/1
+Content-Type: application/json
+
+{
+  "nome": "3º Ano B",
+  "curso": "Ensino Médio",
+  "turno": "Vespertino"
+}
+
+###
+
+### 5. Excluir turma
+DELETE http://localhost:8080/edu/deleteturma/1

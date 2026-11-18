@@ -134,7 +134,7 @@ export function NovoAluno({ aoFechar, aoSalvar, alunosExistentes, turmas }: any)
     const id = maiorId + 1;
     const hoje = textoDaData(new Date());
     const matricula = hoje.slice(0, 4) + String(id).padStart(4, "0");
-    const aluno = alunoParaBack(form, id, matricula, hoje);
+    const aluno = alunoParaBack(form, id, matricula, hoje, turmas);
 
     setSalvando(true);
     enviarAluno(aluno)
@@ -142,10 +142,14 @@ export function NovoAluno({ aoFechar, aoSalvar, alunosExistentes, turmas }: any)
         setSalvando(false);
         aoSalvar({ nome: form.nome.trim() });
       })
-      .catch(() => {
-        setSalvando(false);
-        setErroGeral("Não foi possível salvar. O back está rodando?");
-      });
+      
+  .catch((erro: any) => {
+    setSalvando(false);
+    setErroGeral(
+      erro.message || "Erro desconhecido ao cadastrar aluno."
+    );
+  });
+
   }
 
   return (
@@ -194,10 +198,11 @@ export function NovoAluno({ aoFechar, aoSalvar, alunosExistentes, turmas }: any)
           <CampoFormulario rotulo="Cartão RFID (4 a 10 dígitos)" erro={erros.cartao}>
             <input
               className="app-input w-full"
-              placeholder="1234"
+              placeholder="236096A9"
               inputMode="numeric"
               value={form.cartao}
-              onChange={(e) => mudar("cartao", e.target.value.replace(/\D/g, "").slice(0, 10))}
+              onChange={(e) =>mudar("cartao", e.target.value.toUpperCase().replace(/[^A-F0-9]/g, "").slice(0, 10))
+              }
             />
           </CampoFormulario>
           <CampoFormulario rotulo="Turma">

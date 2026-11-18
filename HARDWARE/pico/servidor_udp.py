@@ -1,7 +1,7 @@
 
 import socket
 
-IP = "172.16.30.19"
+IP = "172.16.30.21"
 PORTA = 5005
 
 servidor = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
