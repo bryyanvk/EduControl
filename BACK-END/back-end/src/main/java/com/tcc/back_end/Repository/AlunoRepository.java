@@ -1,3 +1,4 @@
+
 package com.tcc.back_end.Repository;
 
 import com.tcc.back_end.Model.Aluno;
@@ -6,12 +7,44 @@ import org.springframework.stereotype.Repository;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
 
 @Repository
 public class AlunoRepository {
 
     private List<Aluno> listaDeAlunos = new ArrayList<>();
     private int proximoId = 1;
+
+    public boolean matriculaEmUso(String matricula, Integer alunoIdIgnorado) {
+
+        if (matricula == null || matricula.isBlank()) {
+            return false;
+        }
+
+        String matriculaNormalizada =
+                matricula.trim().toLowerCase(Locale.ROOT);
+
+        return listaDeAlunos.stream().anyMatch(aluno -> {
+
+            if (aluno.getMatricula() == null) {
+                return false;
+            }
+
+            boolean mesmoAluno =
+                    alunoIdIgnorado != null &&
+                            Objects.equals(aluno.getId(), alunoIdIgnorado);
+
+            if (mesmoAluno) {
+                return false;
+            }
+
+            return aluno.getMatricula()
+                    .trim()
+                    .toLowerCase(Locale.ROOT)
+                    .equals(matriculaNormalizada);
+        });
+    }
 
     public String CadastrarAluno(Aluno aluno) {
 

@@ -53,12 +53,16 @@ function dataAtualISO() {
   return `${ano}-${mes}-${dia}`;
 }
 
-function converterStatus(status: string) {
+// CONVERTER STATUS DO JAVA PARA O REACT
+
+export function converterStatus(status: string) {
   const mapa: Record<string, string> = {
     PRESENTE: "Presente",
     ATRASADO: "Atrasado",
     JUSTIFICADO: "Justificado",
+    FALTA: "Ausente",
     AUSENTE: "Ausente",
+    PENDENTE: "Pendente",
   };
 
   return mapa[status] ?? status;
@@ -95,8 +99,14 @@ export async function registrarPresencaManualAPI(
     Presente: "PRESENTE",
     Atrasado: "ATRASADO",
     Justificado: "JUSTIFICADO",
-    Ausente: "AUSENTE",
+    Ausente: "FALTA",
   };
+
+  const statusConvertido = statusBackend[status];
+
+  if (!statusConvertido) {
+    throw new Error(`Status inválido: ${status}`);
+  }
 
   const resposta = await fetch(`${API}/manual`, {
     method: "POST",
@@ -107,7 +117,7 @@ export async function registrarPresencaManualAPI(
       alunoId,
       data: dataAtualISO(),
       horario: horario ? `${horario}:00` : null,
-      status: statusBackend[status],
+      status: statusConvertido,
     }),
   });
 

@@ -15,19 +15,25 @@ import com.tcc.back_end.Repository.AlunoRepository;
 import com.tcc.back_end.Repository.PresencaRepository;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 public class PresencaService {
 
+    private static final ZoneId ZONA_ESCOLAR =
+            ZoneId.of("America/Sao_Paulo");
+
     private final PresencaRepository presencarepository;
     private final AlunoRepository alunorepository;
+
     private int proximoId = 1;
 
     public PresencaService(
@@ -80,7 +86,7 @@ public class PresencaService {
             return "Cartão inativo";
         }
 
-        LocalDate data = LocalDate.now();
+        LocalDate data = LocalDate.now(ZONA_ESCOLAR);
 
         RegistroPresença existente =
                 presencarepository.buscarPorAlunoEData(aluno.getId(), data);
@@ -90,7 +96,7 @@ public class PresencaService {
                     + existente.getOrigem();
         }
 
-        LocalTime horario = LocalTime.now();
+        LocalTime horario = LocalTime.now(ZONA_ESCOLAR);
         StatusPresenca status = definirStatusPresença(horario);
 
         RegistroPresença registro = new RegistroPresença(
@@ -146,7 +152,7 @@ public class PresencaService {
 
         LocalDate data = dados.getData() != null
                 ? dados.getData()
-                : LocalDate.now();
+                : LocalDate.now(ZONA_ESCOLAR);
 
         RegistroPresença existente =
                 presencarepository.buscarPorAlunoEData(aluno.getId(), data);
@@ -164,6 +170,7 @@ public class PresencaService {
             existente.setStatus(status);
             existente.setHorario(horario);
             existente.setTipo(TipoMarcacao.ENTRADA);
+            existente.setOrigem(OrigemRegistro.MANUAL);
 
             return "Registro manual atualizado com sucesso!";
         }
@@ -179,6 +186,53 @@ public class PresencaService {
         );
 
         return RegistrarPresença(registro);
+    }
+
+    // GERAR FALTAS AUTOMATICAMENTE DE SEGUNDA A SEXTA ÀS 08:40
+
+    @Scheduled(
+            cron = "0 40 8 * * MON-FRI",
+            zone = "America/Sao_Paulo"
+    )
+    public void registrarFaltasAutomaticas() {
+
+        LocalDate data = LocalDate.now(ZONA_ESCOLAR);
+
+        List<Aluno> alunos = alunorepository.getListaDeAlunos();
+
+        int quantidadeFaltas = 0;
+
+        for (Aluno aluno : alunos) {
+
+            RegistroPresença existente =
+                    presencarepository.buscarPorAlunoEData(
+                            aluno.getId(),
+                            data
+                    );
+
+            if (existente != null) {
+                continue;
+            }
+
+            RegistroPresença falta = new RegistroPresença(
+                    proximoId++,
+                    data,
+                    null,
+                    StatusPresenca.FALTA,
+                    TipoMarcacao.ENTRADA,
+                    OrigemRegistro.AUTOMATICA,
+                    aluno
+            );
+
+            RegistrarPresença(falta);
+
+            quantidadeFaltas++;
+        }
+
+        System.out.println(
+                "[EDUCONTROL] Faltas automáticas registradas: "
+                        + quantidadeFaltas
+        );
     }
 
     public String RegistrarPresença(RegistroPresença registroPresença) {

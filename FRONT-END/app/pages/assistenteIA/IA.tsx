@@ -44,67 +44,48 @@ export function IA() {
 
   }, [mensagens, autoScroll]);
 async function enviarMensagem() {
-  if (carregando) {
+  if (carregando || mensagem.trim() === "") {
     return;
   }
 
-  if (mensagem.trim() === "") {
-    return;
-  }
+  const pergunta = mensagem.trim();
 
-  const pergunta = mensagem;
-
-  const novaMensagem = {
-    tipo: "usuario",
-    texto: pergunta
-  };
-
-  setMensagens((mensagensAtuais) => [
-    ...mensagensAtuais,
-    novaMensagem
+  setMensagens((atuais) => [
+    ...atuais,
+    { tipo: "usuario", texto: pergunta },
+    { tipo: "ia", texto: "..." },
   ]);
 
   setMensagem("");
   setCarregando(true);
 
   try {
-    const novaResposta = {
-      tipo: "ia",
-      texto: "..."
-    };
+    const resposta = await enviarParaIA(pergunta);
 
-    setMensagens((mensagensAtuais) => [
-      ...mensagensAtuais,
-      novaResposta
-    ]);
-
-    await enviarParaIA(pergunta, mensagens, (texto) => {
-      setMensagens((mensagensAtuais) => {
-        const novasMensagens = [...mensagensAtuais];
-
-        novasMensagens[novasMensagens.length - 1] = {
-          tipo: "ia",
-          texto: texto
-        };
-
-        return novasMensagens;
-      });
-    }, perfil);
-
-  } catch (erro) {
-    console.log("Erro no Gemini:", erro);
-
-    setMensagens((mensagensAtuais) => {
-      const novasMensagens = [...mensagensAtuais];
+    setMensagens((atuais) => {
+      const novasMensagens = [...atuais];
 
       novasMensagens[novasMensagens.length - 1] = {
         tipo: "ia",
-        texto: "Não consegui responder agora. Tente novamente em alguns instantes."
+        texto: resposta,
       };
 
       return novasMensagens;
     });
+  } catch (erro) {
+    console.error("Erro ao conectar com o backend:", erro);
 
+    setMensagens((atuais) => {
+      const novasMensagens = [...atuais];
+
+      novasMensagens[novasMensagens.length - 1] = {
+        tipo: "ia",
+        texto:
+          "Não consegui me conectar ao EduControl. Verifique se o backend está funcionando e tente novamente.",
+      };
+
+      return novasMensagens;
+    });
   } finally {
     setCarregando(false);
   }

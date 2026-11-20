@@ -1,3 +1,4 @@
+
 package com.tcc.back_end.Service;
 
 import com.tcc.back_end.DTO.AlunoRequestDTO;
@@ -8,7 +9,9 @@ import com.tcc.back_end.Model.Turma;
 import com.tcc.back_end.Repository.AlunoRepository;
 import com.tcc.back_end.Repository.TurmaRepository;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,7 +32,26 @@ public class AlunoService {
         this.turmaRepository = turmaRepository;
     }
 
+    private void validarMatricula(String matricula, Integer alunoIdIgnorado) {
+
+        if (matricula == null || matricula.isBlank()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Informe o número da matrícula."
+            );
+        }
+
+        if (alunorepository.matriculaEmUso(matricula, alunoIdIgnorado)) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Essa matrícula já está cadastrada para outro aluno."
+            );
+        }
+    }
+
     public String CadastrarAluno(AlunoRequestDTO dto) {
+
+        validarMatricula(dto.getMatricula(), null);
 
         if (dto.getTurmaId() == null) {
             return "É necessário informar uma turma!";
@@ -80,6 +102,8 @@ public class AlunoService {
         if (alunoAtual == null) {
             return "Aluno não encontrado!";
         }
+
+        validarMatricula(dto.getMatricula(), id);
 
         if (dto.getTurmaId() == null) {
             return "É necessário informar uma turma!";

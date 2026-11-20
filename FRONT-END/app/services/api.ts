@@ -91,3 +91,11 @@ export function buscarPresencas() {
       return res.json();
     });
 }
+
+export function editarAluno(id: number, aluno: any) {
+  return chamar(`/updatealn/${id}`, "PUT", aluno);
+}
+
+export function excluirAluno(id: number) {
+  return chamar(`/deletealn/${id}`, "DELETE", null);
+}

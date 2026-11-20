@@ -49,29 +49,32 @@ export function turmaPeloNome(nome: string, turmas: any[]) {
   return null;
 }
 
-export const BACK_TEM_CAMPOS_DO_ALUNO = false;
+export const BACK_TEM_CAMPOS_DO_ALUNO = true;
 
-export function alunoParaBack(
-  form: any,
-  id: number,
-  matricula: string,
-  dataMatricula: string,
-  turmas: any[]
-) {
+export function alunoParaBack(form: any, turmas: any[]) {
   const turmaSelecionada = turmaPeloNome(form.turma, turmas);
 
+  if (!turmaSelecionada) {
+    throw new Error("A turma selecionada não foi encontrada.");
+  }
+
   return {
-    id,
     nome: form.nome.trim(),
-    matricula,
+    matricula: form.matricula.trim(),
+    dataMatricula: form.dataMatricula,
     dataNascimento: form.dataNascimento,
     cartao: {
-      uid: form.cartao.trim(),
+      uid: form.cartao.trim().toUpperCase(),
       ativo: true,
     },
-    turma: turmaSelecionada
-      ? { id: turmaSelecionada.id }
-      : null,
+    cpf: apenasDigitos(form.cpf),
+    turmaId: turmaSelecionada.id,
+    turno: form.turno,
+    responsasvelNome: form.responsavelNome.trim(),
+    parentesco: form.parentesco,
+    responsavelTelefone: form.responsavelTelefone,
+    responsavelEmail: form.responsavelEmail.trim(),
+    endereco: form.endereco.trim(),
   };
 }
 
@@ -79,69 +82,50 @@ function textoOuTraco(valor: any) {
   if (valor) {
     return valor;
   }
+
   return "—";
 }
 
 export function alunoDoBack(alunoBack: any) {
-  let cartao = "";
+  const cartao = alunoBack.cartao?.uid || "";
 
-  if (alunoBack.cartao) {
-    cartao = alunoBack.cartao.uid;
-  }
+  const turma =
+    alunoBack.turmaNome ||
+    (typeof alunoBack.turma === "string"
+      ? alunoBack.turma
+      : alunoBack.turma?.nome) ||
+    "Sem turma";
 
-  let turma = "Sem turma";
+  const cpf = alunoBack.cpf
+    ? formatarCpf(alunoBack.cpf)
+    : "";
 
-  if (alunoBack.turma) {
-    if (typeof alunoBack.turma === "string") {
-      turma = alunoBack.turma;
-    } else {
-      turma = alunoBack.turma.nome;
-    }
-  }
-
-  let cpf = "";
-
-  if (alunoBack.cpf) {
-    cpf = formatarCpf(alunoBack.cpf);
-  }
-
-  let idade = 0;
-
-  if (alunoBack.dataNascimento) {
-    idade = calcularIdade(alunoBack.dataNascimento);
-  }
-
-  let dataMatricula = "";
-
-  if (alunoBack.dataMatricula) {
-    dataMatricula = alunoBack.dataMatricula;
-  }
-
-  let telefone = "";
-
-  if (alunoBack.responsavelTelefone) {
-    telefone = alunoBack.responsavelTelefone;
-  }
+  const idade = alunoBack.dataNascimento
+    ? calcularIdade(alunoBack.dataNascimento)
+    : 0;
 
   return {
     id: alunoBack.id,
     nome: alunoBack.nome,
-    cartao: cartao,
-    turma: turma,
+    cartao,
+    turma,
+    turmaId: alunoBack.turmaId || alunoBack.turma?.id || null,
     presenca: "—",
     media: "—",
     situacao: "Bom",
     statusHoje: "Pendente",
     detalhes: {
       matricula: textoOuTraco(alunoBack.matricula),
-      dataMatricula: dataMatricula,
+      dataMatricula: alunoBack.dataMatricula || "",
       dataNascimento: alunoBack.dataNascimento,
-      idade: idade,
-      cpf: cpf,
+      idade,
+      cpf,
       turno: textoOuTraco(alunoBack.turno),
-      responsavelNome: textoOuTraco(alunoBack.responsavelNome),
+      responsavelNome: textoOuTraco(
+        alunoBack.responsavelNome || alunoBack.responsasvelNome
+      ),
       parentesco: textoOuTraco(alunoBack.parentesco),
-      responsavelTelefone: telefone,
+      responsavelTelefone: alunoBack.responsavelTelefone || "",
       responsavelEmail: textoOuTraco(alunoBack.responsavelEmail),
       endereco: textoOuTraco(alunoBack.endereco),
     },

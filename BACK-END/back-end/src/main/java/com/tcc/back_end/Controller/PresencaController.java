@@ -79,6 +79,12 @@ public class PresencaController {
         return presencaService.registrarPresenca(uid);
     }
 
+    @PostMapping("/faltas/automaticas")
+    public String registrarFaltasAutomaticas() {
+        presencaService.registrarFaltasAutomaticas();
+        return "Faltas automáticas processadas com sucesso!";
+    }
+
     @PostMapping("/manual")
     public ResponseEntity<String> registrarPresencaManual(
             @RequestBody PresencaManualRequestDTO dados) {
