@@ -1,4 +1,3 @@
-
 import {
   TrendingUp,
   TrendingDown,
@@ -18,6 +17,8 @@ import { resumoDoDia, porcentagem } from "~/utils/resumoDia";
 import { buscarAlunos, buscarPresencas } from "~/services/api";
 import { alunoDoBack } from "~/utils/conversaoBack";
 import { textoDaData } from "~/utils/filtros";
+
+
 import {
   dataISO,
   normalizarStatus,
@@ -107,7 +108,6 @@ export function Welcome() {
 
   const [alunoAberto, setAlunoAberto] = useState<any>(null);
   const [categoria, setCategoria] = useState("");
-  const [leituras, setLeituras] = useState(0);
   const [funcionarioAberto, setFuncionarioAberto] = useState<any>(null);
 
   const [alunos, setAlunos] = useState<any[]>([]);
@@ -480,7 +480,6 @@ export function Welcome() {
 
             <LeitorRfid
               podeAlterar={pode("configuracoes.rfid")}
-              aoLer={() => setLeituras((anterior) => anterior + 1)}
             />
 
             <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">

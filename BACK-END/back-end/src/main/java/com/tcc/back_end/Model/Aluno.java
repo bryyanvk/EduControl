@@ -1,3 +1,4 @@
+
 package com.tcc.back_end.Model;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
@@ -13,22 +14,37 @@ public class Aluno {
     private LocalDate dataNascimento;
     private CartãoRFID cartao;
     private String cpf;
+
     @JsonBackReference
     private Turma turma;
+
     private String turno;
-    private String responsasvelNome;
+    private String responsavelNome;
     private String parentesco;
     private String responsavelTelefone;
     private String responsavelEmail;
     private String endereco;
     private LocalDate dataMatricula;
 
-
-
     public Aluno() {
     }
 
-    public Aluno(int id, String nome, String matricula, LocalDate dataNascimento, CartãoRFID cartao, String cpf, Turma turma, String turno, String responsasvelNome, String parentesco, String responsavelEmail, String responsavelTelefone, String endereco, LocalDate dataMatricula) {
+    public Aluno(
+            int id,
+            String nome,
+            String matricula,
+            LocalDate dataNascimento,
+            CartãoRFID cartao,
+            String cpf,
+            Turma turma,
+            String turno,
+            String responsavelNome,
+            String parentesco,
+            String responsavelEmail,
+            String responsavelTelefone,
+            String endereco,
+            LocalDate dataMatricula
+    ) {
         this.id = id;
         this.nome = nome;
         this.matricula = matricula;
@@ -37,7 +53,7 @@ public class Aluno {
         this.cpf = cpf;
         this.turma = turma;
         this.turno = turno;
-        this.responsasvelNome = responsasvelNome;
+        this.responsavelNome = responsavelNome;
         this.parentesco = parentesco;
         this.responsavelEmail = responsavelEmail;
         this.responsavelTelefone = responsavelTelefone;
@@ -109,12 +125,12 @@ public class Aluno {
         this.turno = turno;
     }
 
-    public String getResponsasvelNome() {
-        return responsasvelNome;
+    public String getResponsavelNome() {
+        return responsavelNome;
     }
 
-    public void setResponsasvelNome(String responsasvelNome) {
-        this.responsasvelNome = responsasvelNome;
+    public void setResponsavelNome(String responsavelNome) {
+        this.responsavelNome = responsavelNome;
     }
 
     public String getParentesco() {
@@ -157,7 +173,11 @@ public class Aluno {
         this.dataMatricula = dataMatricula;
     }
 
-    public int calcularIdade(){
+    public int calcularIdade() {
+        if (dataNascimento == null) {
+            return 0;
+        }
+
         return Period.between(dataNascimento, LocalDate.now()).getYears();
     }
 }

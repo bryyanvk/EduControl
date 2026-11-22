@@ -23,13 +23,17 @@ public class AlunoService {
 
     private final AlunoRepository alunorepository;
     private final TurmaRepository turmaRepository;
+    private final NotificacaoService notificacaoService;
 
     public AlunoService(
             AlunoRepository alunorepository,
-            TurmaRepository turmaRepository) {
+            TurmaRepository turmaRepository,
+            NotificacaoService notificacaoService
+    ) {
 
         this.alunorepository = alunorepository;
         this.turmaRepository = turmaRepository;
+        this.notificacaoService = notificacaoService;
     }
 
     private void validarMatricula(String matricula, Integer alunoIdIgnorado) {
@@ -71,7 +75,12 @@ public class AlunoService {
 
         String resultado = alunorepository.CadastrarAluno(aluno);
 
-        turma.getAlunos().add(aluno);
+        if ("Aluno cadastrado!!".equals(resultado)) {
+
+            turma.getAlunos().add(aluno);
+
+            notificacaoService.registrarNovoAluno(aluno);
+        }
 
         return resultado;
     }

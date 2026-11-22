@@ -17,7 +17,7 @@ import { useUsuario } from "~/hooks/useUsuario";
 import { Paginacao } from "~/components/Paginacao";
 import { usePaginacao } from "~/hooks/usePaginacao";
 import {
-  buscarAlunos,
+  buscarAlunos, 
   buscarTurmas,
   buscarPresencas,
 } from "~/services/api";

@@ -3,9 +3,11 @@ package com.tcc.back_end.ia.Service;
 
 import com.tcc.back_end.DTO.AlunoResponseDTO;
 import com.tcc.back_end.DTO.PresencaResponseDTO;
+import com.tcc.back_end.Model.Notificacao;
 import com.tcc.back_end.Model.Sala;
 import com.tcc.back_end.Model.Turma;
 import com.tcc.back_end.Service.AlunoService;
+import com.tcc.back_end.Service.NotificacaoService;
 import com.tcc.back_end.Service.PresencaService;
 import com.tcc.back_end.Service.SalaService;
 import com.tcc.back_end.Service.TurmaService;
@@ -14,9 +16,11 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.time.ZoneId;
 
 @Service
 public class ContextoEscolarService {
@@ -25,17 +29,20 @@ public class ContextoEscolarService {
     private final TurmaService turmaService;
     private final SalaService salaService;
     private final PresencaService presencaService;
+    private final NotificacaoService notificacaoService;
 
     public ContextoEscolarService(
             AlunoService alunoService,
             TurmaService turmaService,
             SalaService salaService,
-            PresencaService presencaService) {
+            PresencaService presencaService,
+            NotificacaoService notificacaoService) {
 
         this.alunoService = alunoService;
         this.turmaService = turmaService;
         this.salaService = salaService;
         this.presencaService = presencaService;
+        this.notificacaoService = notificacaoService;
     }
 
     public String montarContextoEscolar() {
@@ -43,15 +50,20 @@ public class ContextoEscolarService {
         List<AlunoResponseDTO> alunos = alunoService.getListaDeAlunos();
         List<Turma> turmas = turmaService.getListaDeTurma();
         List<Sala> salas = salaService.getListaDeSala();
+
         List<PresencaResponseDTO> presencas =
                 presencaService.getListaRegistro();
+
+        List<Notificacao> notificacoes =
+                notificacaoService.listarNotificacoes();
 
         if (alunos == null) alunos = List.of();
         if (turmas == null) turmas = List.of();
         if (salas == null) salas = List.of();
         if (presencas == null) presencas = List.of();
+        if (notificacoes == null) notificacoes = List.of();
 
-        LocalDate hoje = LocalDate.now();
+        LocalDate hoje = LocalDate.now(ZoneId.of("America/Sao_Paulo"));
 
         List<PresencaResponseDTO> registrosHoje =
                 presencas.stream()
@@ -105,8 +117,6 @@ public class ContextoEscolarService {
                 .append(hoje)
                 .append("\n\n");
 
-        // DADOS GERAIS
-
         contexto.append("DADOS GERAIS:\n");
 
         contexto.append("Alunos cadastrados: ")
@@ -120,6 +130,104 @@ public class ContextoEscolarService {
 
         contexto.append("Total de registros de frequência: ")
                 .append(presencas.size()).append("\n\n");
+
+        // NOTIFICAÇÕES
+
+        Map<Integer, String> nomesAlunos = new HashMap<>();
+
+        for (AlunoResponseDTO aluno : alunos) {
+            nomesAlunos.put(aluno.getId(), aluno.getNome());
+        }
+
+        List<Notificacao> notificacoesReais =
+                notificacoes.stream()
+                        .filter(notificacao ->
+                                notificacao.getId() == null
+                                        || !notificacao.getId().startsWith("TESTE_"))
+                        .toList();
+
+        List<Notificacao> notificacoesTeste =
+                notificacoes.stream()
+                        .filter(notificacao ->
+                                notificacao.getId() != null
+                                        && notificacao.getId().startsWith("TESTE_"))
+                        .toList();
+
+        long naoLidasReais = notificacoesReais.stream()
+                .filter(notificacao -> !notificacao.isLida())
+                .count();
+
+        long riscosReais = notificacoesReais.stream()
+                .filter(notificacao ->
+                        "ALUNO_RISCO".equals(notificacao.getTipo()))
+                .count();
+
+        long faltasReais = notificacoesReais.stream()
+                .filter(notificacao ->
+                        "FALTAS_CONSECUTIVAS".equals(notificacao.getTipo()))
+                .count();
+
+        long riscosTeste = notificacoesTeste.stream()
+                .filter(notificacao ->
+                        "ALUNO_RISCO".equals(notificacao.getTipo()))
+                .count();
+
+        long faltasTeste = notificacoesTeste.stream()
+                .filter(notificacao ->
+                        "FALTAS_CONSECUTIVAS".equals(notificacao.getTipo()))
+                .count();
+
+        contexto.append("NOTIFICAÇÕES DO SISTEMA:\n");
+
+        contexto.append("Total de notificações reais: ")
+                .append(notificacoesReais.size())
+                .append("\n");
+
+        contexto.append("Notificações reais não lidas: ")
+                .append(naoLidasReais)
+                .append("\n");
+
+        contexto.append("Alertas reais de alunos em risco: ")
+                .append(riscosReais)
+                .append("\n");
+
+        contexto.append("Alertas reais de faltas consecutivas: ")
+                .append(faltasReais)
+                .append("\n");
+
+        contexto.append("\nNOTIFICAÇÕES DE TESTE:\n");
+
+        contexto.append("Total de notificações de teste: ")
+                .append(notificacoesTeste.size())
+                .append("\n");
+
+        contexto.append("Alertas de risco de teste: ")
+                .append(riscosTeste)
+                .append("\n");
+
+        contexto.append("Alertas de faltas consecutivas de teste: ")
+                .append(faltasTeste)
+                .append("\n");
+
+        contexto.append("\nDETALHAMENTO DAS NOTIFICAÇÕES REAIS:\n");
+
+        adicionarNotificacoes(
+                contexto,
+                notificacoesReais,
+                nomesAlunos,
+                false
+        );
+
+        contexto.append("\nDETALHAMENTO DAS NOTIFICAÇÕES DE TESTE:\n");
+
+        adicionarNotificacoes(
+                contexto,
+                notificacoesTeste,
+                nomesAlunos,
+                true
+        );
+
+        contexto.append("\n");
 
         // FREQUÊNCIA GERAL
 
@@ -312,6 +420,21 @@ public class ContextoEscolarService {
                 - Mais de 3 faltas consecutivas gera situação de atenção.
                 - 5 ou mais faltas consecutivas gera situação de risco.
 
+                REGRAS DE NOTIFICAÇÕES:
+
+                - Utilize os alertas fornecidos pelo sistema.
+                - ALUNO_RISCO representa um aluno com 5 ou mais faltas consecutivas.
+                - FALTAS_CONSECUTIVAS representa um alerta de 4 ou mais faltas consecutivas.
+                - Utilize o nome e a mensagem da notificação para explicar o motivo do alerta.
+                - Diferencie notificações lidas e não lidas.
+                - Notificações reais e de teste devem ser apresentadas separadamente.
+                - Nunca apresente notificações de teste como dados reais.
+                - Não invente notificações ou alunos em situação de risco.
+                - Não confunda quantidade de notificações com quantidade de alunos.
+                - Quando perguntarem sobre dados reais, utilize somente notificações reais.
+                - Quando perguntarem sobre testes, utilize somente notificações de teste.
+                - Quando perguntarem sobre todas as notificações, apresente os dois grupos separados.
+
                 LIMITAÇÕES:
 
                 - Os dados apresentados são os retornados pelos serviços.
@@ -325,6 +448,51 @@ public class ContextoEscolarService {
                 """);
 
         return contexto.toString();
+    }
+
+    private void adicionarNotificacoes(
+            StringBuilder contexto,
+            List<Notificacao> notificacoes,
+            Map<Integer, String> nomesAlunos,
+            boolean teste
+    ) {
+
+        if (notificacoes.isEmpty()) {
+            contexto.append("Nenhuma notificação encontrada.\n");
+            return;
+        }
+
+        for (Notificacao notificacao : notificacoes) {
+
+            String nomeAluno = notificacao.getAlunoId() == null
+                    ? "Aluno não identificado"
+                    : nomesAlunos.getOrDefault(
+                    notificacao.getAlunoId(),
+                    "Aluno não localizado na lista de cadastros"
+            );
+
+            contexto.append("\nTítulo: ")
+                    .append(notificacao.getTitulo())
+                    .append("\nTipo: ")
+                    .append(notificacao.getTipo())
+                    .append("\nCategoria: ")
+                    .append(teste ? "TESTE" : "REAL")
+                    .append("\nAluno: ")
+                    .append(nomeAluno)
+                    .append("\nID do aluno: ")
+                    .append(notificacao.getAlunoId() == null
+                            ? "Não informado"
+                            : notificacao.getAlunoId())
+                    .append("\nMensagem: ")
+                    .append(notificacao.getMensagem())
+                    .append("\nData: ")
+                    .append(notificacao.getDataHora())
+                    .append("\nSituação: ")
+                    .append(notificacao.isLida()
+                            ? "Lida"
+                            : "Não lida")
+                    .append("\n");
+        }
     }
 
     private Map<String, Long> contarPorStatus(
@@ -358,3 +526,4 @@ public class ContextoEscolarService {
         );
     }
 }
+

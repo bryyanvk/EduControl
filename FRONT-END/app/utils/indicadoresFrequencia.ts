@@ -1,3 +1,4 @@
+
 export function normalizarStatus(status: any): string {
   return String(status ?? "")
     .normalize("NFD")
@@ -53,6 +54,7 @@ export function dataISO(data: any): string {
 
   return `${ano}-${mes}-${dia}`;
 }
+
 export function statusDaPresenca(status: any): string {
   const valor = normalizarStatus(status);
 
@@ -111,16 +113,23 @@ export function calcularMediaAnual(
   anoAtual = new Date().getFullYear()
 ): number {
   const registrosDoAluno = registrosUnicosPorDia(registros).filter(
-    (registro) =>
-      identificadorAluno(registro) === String(alunoId) &&
-      Number(registro.data.slice(0, 4)) === anoAtual &&
-      normalizarStatus(registro.status) !== "PENDENTE"
+    (registro) => {
+      const status = normalizarStatus(registro.status);
+
+      return (
+        identificadorAluno(registro) === String(alunoId) &&
+        Number(registro.data.slice(0, 4)) === anoAtual &&
+        status !== "PENDENTE" &&
+        status !== "JUSTIFICADO"
+      );
+    }
   );
 
   if (registrosDoAluno.length === 0) return 0;
 
   const presentes = registrosDoAluno.filter((registro) => {
     const status = normalizarStatus(registro.status);
+
     return status === "PRESENTE" || status === "ATRASADO";
   }).length;
 
@@ -132,18 +141,13 @@ export function calcularFaltasConsecutivas(
   alunoId: string | number,
   dataReferencia = new Date()
 ): number {
-  const ano = dataReferencia.getFullYear();
-  const mes = dataReferencia.getMonth();
+  const dataLimite = dataISO(dataReferencia);
 
   const registrosDoAluno = registrosUnicosPorDia(registros)
     .filter((registro) => {
-      const data = new Date(`${registro.data}T12:00:00`);
-
       return (
         identificadorAluno(registro) === String(alunoId) &&
-        data.getFullYear() === ano &&
-        data.getMonth() === mes &&
-        data <= dataReferencia
+        registro.data <= dataLimite
       );
     })
     .sort((a, b) => b.data.localeCompare(a.data));
@@ -153,8 +157,10 @@ export function calcularFaltasConsecutivas(
   for (const registro of registrosDoAluno) {
     const status = normalizarStatus(registro.status);
 
+    // Registros pendentes não alteram a sequência.
     if (status === "PENDENTE") continue;
 
+    // Conta faltas.
     if (
       status === "FALTA" ||
       status === "FALTOU" ||
@@ -164,6 +170,7 @@ export function calcularFaltasConsecutivas(
       continue;
     }
 
+    // Presença, atraso ou justificativa interrompem a sequência.
     if (
       status === "PRESENTE" ||
       status === "ATRASADO" ||

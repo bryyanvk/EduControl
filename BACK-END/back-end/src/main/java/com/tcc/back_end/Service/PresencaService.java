@@ -19,6 +19,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
@@ -31,18 +32,110 @@ public class PresencaService {
     private static final ZoneId ZONA_ESCOLAR =
             ZoneId.of("America/Sao_Paulo");
 
+    private static final LocalTime HORARIO_DESATIVACAO =
+            LocalTime.of(8, 40);
+
     private final PresencaRepository presencarepository;
     private final AlunoRepository alunorepository;
+    private final NotificacaoService notificacaoService;
 
     private int proximoId = 1;
 
+    // Controle do leitor RFID
+    private boolean leitorRfidAtivo = true;
+
+    // Indica se o administrador alterou o estado após as 08:40
+    private boolean estadoDefinidoManualmenteAposLimite = false;
+
+    // Data do último controle
+    private LocalDate dataControleRfid =
+            LocalDate.now(ZONA_ESCOLAR);
+
     public PresencaService(
             PresencaRepository presencarepository,
-            AlunoRepository alunorepository) {
-
+            AlunoRepository alunorepository,
+            NotificacaoService notificacaoService
+    ) {
         this.presencarepository = presencarepository;
         this.alunorepository = alunorepository;
+        this.notificacaoService = notificacaoService;
     }
+
+    private boolean ehFimDeSemana(LocalDate data) {
+
+        DayOfWeek dia = data.getDayOfWeek();
+
+        return dia == DayOfWeek.SATURDAY
+                || dia == DayOfWeek.SUNDAY;
+    }
+
+    private void validarDiaLetivo(LocalDate data) {
+
+        if (data == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Data do registro não informada."
+            );
+        }
+
+        if (ehFimDeSemana(data)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Não é permitido registrar presença em finais de semana."
+            );
+        }
+    }
+
+    // ==============================
+    // CONTROLE DO LEITOR RFID
+    // ==============================
+
+    private void atualizarEstadoRfid() {
+
+        LocalDate hoje = LocalDate.now(ZONA_ESCOLAR);
+        LocalTime agora = LocalTime.now(ZONA_ESCOLAR);
+
+        // Reinicia o controle quando muda o dia
+        if (!hoje.equals(dataControleRfid)) {
+
+            dataControleRfid = hoje;
+            leitorRfidAtivo = true;
+            estadoDefinidoManualmenteAposLimite = false;
+        }
+
+        // Desativa automaticamente às 08:40
+        if (!ehFimDeSemana(hoje)
+                && !agora.isBefore(HORARIO_DESATIVACAO)
+                && !estadoDefinidoManualmenteAposLimite) {
+
+            leitorRfidAtivo = false;
+        }
+    }
+
+    public boolean isLeitorRfidAtivo() {
+
+        atualizarEstadoRfid();
+
+        return leitorRfidAtivo;
+    }
+
+    public void definirEstadoRfid(boolean ativo) {
+
+        atualizarEstadoRfid();
+
+        LocalTime agora = LocalTime.now(ZONA_ESCOLAR);
+
+        leitorRfidAtivo = ativo;
+
+        // Após as 08:40, respeita a decisão manual
+        if (!agora.isBefore(HORARIO_DESATIVACAO)) {
+            estadoDefinidoManualmenteAposLimite = true;
+        }
+    }
+
+    // ==============================
+    // CONSULTA DE CARTÕES E ALUNOS
+    // ==============================
 
     public String identificarAlunoPeloCartao(String uid) {
         return alunorepository.identificarAlunoPeloCartao(uid);
@@ -74,7 +167,21 @@ public class PresencaService {
         return AlunoMapper.toResponse(aluno);
     }
 
+    // ==============================
+    // REGISTRO RFID
+    // ==============================
+
     public String registrarPresenca(String uid) {
+
+        LocalDate data = LocalDate.now(ZONA_ESCOLAR);
+
+        validarDiaLetivo(data);
+
+        atualizarEstadoRfid();
+
+        if (!leitorRfidAtivo) {
+            return "Leitor RFID desativado. Registro não permitido.";
+        }
 
         Aluno aluno = alunorepository.buscarAlunoPeloCartao(uid);
 
@@ -86,10 +193,11 @@ public class PresencaService {
             return "Cartão inativo";
         }
 
-        LocalDate data = LocalDate.now(ZONA_ESCOLAR);
-
         RegistroPresença existente =
-                presencarepository.buscarPorAlunoEData(aluno.getId(), data);
+                presencarepository.buscarPorAlunoEData(
+                        aluno.getId(),
+                        data
+                );
 
         if (existente != null) {
             return "Presença já registrada hoje. Origem: "
@@ -112,7 +220,18 @@ public class PresencaService {
         return RegistrarPresença(registro);
     }
 
+    // ==============================
+    // REGISTRO MANUAL
+    // ==============================
+
     public String registrarPresencaManual(PresencaManualRequestDTO dados) {
+
+        if (dados == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Dados do registro não informados."
+            );
+        }
 
         if (dados.getAlunoId() == null) {
             throw new ResponseStatusException(
@@ -127,6 +246,12 @@ public class PresencaService {
                     "Status não informado"
             );
         }
+
+        LocalDate data = dados.getData() != null
+                ? dados.getData()
+                : LocalDate.now(ZONA_ESCOLAR);
+
+        validarDiaLetivo(data);
 
         Aluno aluno = alunorepository.buscarAlunoPorId(dados.getAlunoId());
 
@@ -150,12 +275,11 @@ public class PresencaService {
             );
         }
 
-        LocalDate data = dados.getData() != null
-                ? dados.getData()
-                : LocalDate.now(ZONA_ESCOLAR);
-
         RegistroPresença existente =
-                presencarepository.buscarPorAlunoEData(aluno.getId(), data);
+                presencarepository.buscarPorAlunoEData(
+                        aluno.getId(),
+                        data
+                );
 
         if (existente != null) {
 
@@ -171,6 +295,8 @@ public class PresencaService {
             existente.setHorario(horario);
             existente.setTipo(TipoMarcacao.ENTRADA);
             existente.setOrigem(OrigemRegistro.MANUAL);
+
+            notificacaoService.atualizarNotificacoes();
 
             return "Registro manual atualizado com sucesso!";
         }
@@ -188,7 +314,9 @@ public class PresencaService {
         return RegistrarPresença(registro);
     }
 
-    // GERAR FALTAS AUTOMATICAMENTE DE SEGUNDA A SEXTA ÀS 08:40
+    // ==============================
+    // FALTAS AUTOMÁTICAS
+    // ==============================
 
     @Scheduled(
             cron = "0 40 8 * * MON-FRI",
@@ -196,7 +324,16 @@ public class PresencaService {
     )
     public void registrarFaltasAutomaticas() {
 
+        atualizarEstadoRfid();
+
         LocalDate data = LocalDate.now(ZONA_ESCOLAR);
+
+        if (ehFimDeSemana(data)) {
+            System.out.println(
+                    "[EDUCONTROL] Faltas automáticas não executadas: fim de semana."
+            );
+            return;
+        }
 
         List<Aluno> alunos = alunorepository.getListaDeAlunos();
 
@@ -224,7 +361,7 @@ public class PresencaService {
                     aluno
             );
 
-            RegistrarPresença(falta);
+            presencarepository.RegistrarPresenca(falta);
 
             quantidadeFaltas++;
         }
@@ -233,11 +370,36 @@ public class PresencaService {
                 "[EDUCONTROL] Faltas automáticas registradas: "
                         + quantidadeFaltas
         );
+
+        notificacaoService.atualizarNotificacoes();
     }
 
+    // ==============================
+    // SALVAR REGISTRO
+    // ==============================
+
     public String RegistrarPresença(RegistroPresença registroPresença) {
-        return presencarepository.RegistrarPresenca(registroPresença);
+
+        if (registroPresença == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Registro de presença não informado."
+            );
+        }
+
+        validarDiaLetivo(registroPresença.getData());
+
+        String resultado =
+                presencarepository.RegistrarPresenca(registroPresença);
+
+        notificacaoService.atualizarNotificacoes();
+
+        return resultado;
     }
+
+    // ==============================
+    // LISTAGEM DE PRESENÇAS
+    // ==============================
 
     public List<PresencaResponseDTO> getListaRegistro() {
 

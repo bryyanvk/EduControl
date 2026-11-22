@@ -25,9 +25,15 @@ function normalizarStatus(status: any) {
   if (valor === "PRESENTE") return "Presente";
   if (valor === "ATRASADO") return "Atrasado";
   if (valor === "JUSTIFICADO") return "Justificado";
-  if (valor === "FALTA" || valor === "FALTOU" || valor === "AUSENTE") {
+
+  if (
+    valor === "FALTA" ||
+    valor === "FALTOU" ||
+    valor === "AUSENTE"
+  ) {
     return "Ausente";
   }
+
   if (valor === "PENDENTE") return "Pendente";
 
   return "Desconhecido";
@@ -53,7 +59,8 @@ function registrosUnicosPorDia(registros: any[]) {
 
     if (
       !anterior ||
-      String(registro.horario || "") >= String(anterior.horario || "")
+      String(registro.horario || "") >=
+        String(anterior.horario || "")
     ) {
       mapa.set(chave, {
         ...registro,
@@ -79,13 +86,13 @@ export function filtrarPorPeriodo(
   if (periodo === "Últimos 7 dias") {
     const data = new Date();
     data.setDate(data.getDate() - 6);
-    inicio = textoDaData(data);
+    inicio = textoDaData(data).slice(0, 10);
   }
 
   if (periodo === "Últimos 30 dias") {
     const data = new Date();
     data.setDate(data.getDate() - 29);
-    inicio = textoDaData(data);
+    inicio = textoDaData(data).slice(0, 10);
   }
 
   if (periodo === "Este mês") {
@@ -106,14 +113,17 @@ export function filtrarPorPeriodo(
       registro.data >= inicio && registro.data <= hoje;
 
     const dentroDaTurma =
-      turma === "Todas as turmas" || registro.turma === turma;
+      turma === "Todas as turmas" ||
+      registro.turma === turma;
 
     if (dentroDoPeriodo && dentroDaTurma) {
       resultado.push(registro);
     }
   }
 
-  return resultado.sort((a, b) => a.data.localeCompare(b.data));
+  return resultado.sort((a, b) =>
+    a.data.localeCompare(b.data)
+  );
 }
 
 export function contarPresencas(registros: any[]) {
@@ -131,12 +141,15 @@ export function contarPresencas(registros: any[]) {
     if (status === "Ausente") ausentes++;
   }
 
-  const marcados = presentes + atrasados + justificados + ausentes;
+  // Justificativas não entram no cálculo da frequência.
+  const marcados = presentes + atrasados + ausentes;
 
   let taxa = 0;
 
   if (marcados > 0) {
-    taxa = Math.round(((presentes + atrasados) / marcados) * 100);
+    taxa = Math.round(
+      ((presentes + atrasados) / marcados) * 100
+    );
   }
 
   return {
@@ -167,11 +180,15 @@ export function evolucaoPorDia(registros: any[]) {
       };
     }
 
-    if (status === "Presente" || status === "Atrasado") {
+    if (
+      status === "Presente" ||
+      status === "Atrasado"
+    ) {
       dias[data].presentes++;
     }
 
-    if (status === "Ausente" || status === "Justificado") {
+    // Justificados não são contabilizados como faltosos.
+    if (status === "Ausente") {
       dias[data].faltosos++;
     }
 

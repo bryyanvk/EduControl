@@ -1,3 +1,4 @@
+
 package com.tcc.back_end.ia.Controller;
 
 import com.tcc.back_end.ia.DTO.PerguntaIARequest;
@@ -22,7 +23,9 @@ public class AssistenteController {
     ) {
         if (request.pergunta() == null ||
                 request.pergunta().isBlank()) {
-            throw new IllegalArgumentException("A pergunta não pode estar vazia.");
+            throw new IllegalArgumentException(
+                    "A pergunta não pode estar vazia."
+            );
         }
 
         String resposta = geminiService.gerarResposta(
@@ -30,5 +33,13 @@ public class AssistenteController {
         );
 
         return new RespostaIAResponse(resposta);
+    }
+
+    @GetMapping("/resumo-diario")
+    public RespostaIAResponse gerarResumoDiario() {
+
+        String resumo = geminiService.gerarResumoDiario();
+
+        return new RespostaIAResponse(resumo);
     }
 }

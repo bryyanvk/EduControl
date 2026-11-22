@@ -70,26 +70,63 @@ public class PresencaController {
     public String registrarPresencaRFID(
             @RequestBody PresencaRequestDTO dados) {
 
-        String uid = dados.getUid();
+        if (dados == null
+                || dados.getUid() == null
+                || dados.getUid().isBlank()) {
 
-        if (uid == null || uid.isBlank()) {
             return "UID não informado";
         }
 
-        return presencaService.registrarPresenca(uid);
+        return presencaService.registrarPresenca(dados.getUid());
     }
+
+    // ==============================
+    // CONTROLE DO LEITOR RFID
+    // ==============================
+
+    @GetMapping("/rfid/estado")
+    public ResponseEntity<Boolean> consultarEstadoRfid() {
+
+        return ResponseEntity.ok(
+                presencaService.isLeitorRfidAtivo()
+        );
+    }
+
+    @PutMapping("/rfid/estado")
+    public ResponseEntity<String> definirEstadoRfid(
+            @RequestParam boolean ativo) {
+
+        presencaService.definirEstadoRfid(ativo);
+
+        return ResponseEntity.ok(
+                ativo
+                        ? "Leitor RFID ativado!"
+                        : "Leitor RFID desativado!"
+        );
+    }
+
+    // ==============================
+    // FALTAS AUTOMÁTICAS
+    // ==============================
 
     @PostMapping("/faltas/automaticas")
     public String registrarFaltasAutomaticas() {
+
         presencaService.registrarFaltasAutomaticas();
+
         return "Faltas automáticas processadas com sucesso!";
     }
+
+    // ==============================
+    // REGISTRO MANUAL
+    // ==============================
 
     @PostMapping("/manual")
     public ResponseEntity<String> registrarPresencaManual(
             @RequestBody PresencaManualRequestDTO dados) {
 
         try {
+
             String resposta =
                     presencaService.registrarPresencaManual(dados);
 
