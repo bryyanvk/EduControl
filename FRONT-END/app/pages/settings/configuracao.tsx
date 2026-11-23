@@ -1,3 +1,4 @@
+
 import {
   Users,
   Settings,
@@ -14,10 +15,21 @@ import {
   Check,
   ChevronRight,
 } from "lucide-react";
-import { leitorAtivo } from "~/utils/rfid";
+
 import { Sidebar } from "~/components/Sidebar";
 import { useUsuario } from "~/hooks/useUsuario";
 import { nomeDoPerfil } from "~/auth/permissoes";
+
+import {
+  buscarRegrasEscola,
+  salvarRegrasEscola,
+  buscarConfiguracaoGeral,
+  salvarConfiguracaoGeral,
+  buscarNotificacoes,
+  salvarNotificacoes,
+  buscarConfiguracaoRFID,
+  salvarConfiguracaoRFID,
+} from "~/services/api";
 
 import Lohran from "../../../public/lohran-avatar.png";
 import { useNavigate } from "react-router";
@@ -37,16 +49,23 @@ export function Configuracao() {
 
   const [mensagem, setMensagem] = useState("");
   const [aba, setAba] = useState("Geral");
+  const [carregando, setCarregando] = useState(true);
+  const [salvando, setSalvando] = useState(false);
+
   const { pode, usuario } = useUsuario();
+
   let permissaoDaAba = "configuracoes.pessoais";
+
   for (let i = 0; i < ABAS.length; i++) {
     if (ABAS[i].nome === aba) {
       permissaoDaAba = ABAS[i].editar;
     }
   }
+
   const podeEditarAba = pode(permissaoDaAba);
   const podeEditarNotificacoes = pode("configuracoes.notificacoesGlobais");
   const podeEditarRegras = pode("configuracoes.regrasEscola");
+  const podeEditarRFID = pode("configuracoes.rfid");
 
   const [notificacoes, setNotificacoes] = useState(true);
   const [faltas, setFaltas] = useState(true);
@@ -59,70 +78,122 @@ export function Configuracao() {
   const [anoLetivo, setAnoLetivo] = useState("2026");
   const [turno, setTurno] = useState("Matutino");
 
+  const [aparencia, setAparencia] = useState("auto");
+
+  const [rfidAtivo, setRfidAtivo] = useState(true);
+
   const [modalSenha, setModalSenha] = useState(false);
   const [senhaAtual, setSenhaAtual] = useState("");
   const [senhaNova, setSenhaNova] = useState("");
   const [confirmarSenha, setConfirmarSenha] = useState("");
   const [erroSenha, setErroSenha] = useState("");
 
+  function alterarAparencia(valor: string) {
+    setAparencia(valor);
+
+    window.dispatchEvent(
+      new CustomEvent("educontrol-tema-alterado", {
+        detail: valor,
+      })
+    );
+  }
+
   useEffect(() => {
-    try {
-      const dadosSalvos = localStorage.getItem("educontrol-configuracoes");
+    async function carregarConfiguracoes() {
+      try {
+        setCarregando(true);
 
-      if (dadosSalvos) {
-        const dados = JSON.parse(dadosSalvos);
+        const [regras, geral, dadosNotificacoes, rfid] = await Promise.all([
+          buscarRegrasEscola(),
+          buscarConfiguracaoGeral(),
+          buscarNotificacoes(),
+          buscarConfiguracaoRFID(),
+        ]);
 
-        setNotificacoes(dados.notificacoes ?? true);
-        setFaltas(dados.faltas ?? true);
-        setAlunosRisco(dados.alunosRisco ?? true);
-        setNovosAlunos(dados.novosAlunos ?? false);
-        setProfessoresAusentes(dados.professoresAusentes ?? true);
-        setEmailRelatorios(dados.emailRelatorios ?? false);
-        setHorarioLimite(dados.horarioLimite ?? "07:10");
-        setAnoLetivo(dados.anoLetivo ?? "2026");
-        setTurno(dados.turno ?? "Matutino");
+        setHorarioLimite(
+          String(regras.horarioLimite ?? "07:10").slice(0, 5)
+        );
+
+        setAnoLetivo(String(regras.anoLetivo ?? 2026));
+        setTurno(regras.turno ?? "Matutino");
+
+        setAparencia(geral.aparencia ?? "auto");
+
+        setNotificacoes(dadosNotificacoes.notificacoesSistema ?? true);
+        setFaltas(dadosNotificacoes.faltasAtrasos ?? true);
+        setAlunosRisco(dadosNotificacoes.alunosEmRisco ?? true);
+        setNovosAlunos(dadosNotificacoes.novosAlunos ?? false);
+        setProfessoresAusentes(
+          dadosNotificacoes.professoresAusentes ?? true
+        );
+        setEmailRelatorios(dadosNotificacoes.relatoriosEmail ?? false);
+
+        setRfidAtivo(rfid.leitorAtivo ?? true);
+      } catch (erro) {
+        console.error("Erro ao carregar configurações:", erro);
+        setMensagem(
+          "Não foi possível carregar as configurações do servidor."
+        );
+      } finally {
+        setCarregando(false);
       }
-    } catch {
-      console.log("Não foi possível carregar as configurações.");
     }
+
+    carregarConfiguracoes();
   }, []);
 
-  function salvarConfiguracoes() {
-    let configuracoes: any = {};
-    try {
-      configuracoes = JSON.parse(localStorage.getItem("educontrol-configuracoes") || "{}");
-    } catch {
-      configuracoes = {};
-    }
-
-    if (podeEditarNotificacoes) {
-      configuracoes.notificacoes = notificacoes;
-      configuracoes.faltas = faltas;
-      configuracoes.alunosRisco = alunosRisco;
-      configuracoes.novosAlunos = novosAlunos;
-      configuracoes.professoresAusentes = professoresAusentes;
-      configuracoes.emailRelatorios = emailRelatorios;
-    }
-
-    if (podeEditarRegras) {
-      configuracoes.horarioLimite = horarioLimite;
-      configuracoes.anoLetivo = anoLetivo;
-      configuracoes.turno = turno;
-    }
+  async function salvarConfiguracoes() {
+    if (!podeEditarAba || salvando) return;
 
     try {
-      localStorage.setItem(
-        "educontrol-configuracoes",
-        JSON.stringify(configuracoes)
-      );
+      setSalvando(true);
+      setMensagem("");
+
+      if (aba === "Geral") {
+        await salvarConfiguracaoGeral({
+          aparencia,
+          idioma: "pt-BR",
+        });
+      } else if (aba === "Notificações") {
+        if (!podeEditarNotificacoes) return;
+
+        await salvarNotificacoes({
+          notificacoesSistema: notificacoes,
+          faltasAtrasos: faltas,
+          alunosEmRisco: alunosRisco,
+          novosAlunos,
+          professoresAusentes,
+          relatoriosEmail: emailRelatorios,
+        });
+      } else if (aba === "Regras da escola") {
+        if (!podeEditarRegras) return;
+
+        await salvarRegrasEscola({
+          horarioLimite,
+          anoLetivo: Number(anoLetivo),
+          turno,
+        });
+      } else if (aba === "RFID") {
+        if (!podeEditarRFID) return;
+
+        await salvarConfiguracaoRFID({
+          leitorAtivo: rfidAtivo,
+        });
+      } else {
+        return;
+      }
 
       setMensagem("Configurações salvas com sucesso!");
+    } catch (erro) {
+      console.error("Erro ao salvar configurações:", erro);
 
-      setTimeout(() => {
-        setMensagem("");
-      }, 3000);
-    } catch {
-      setMensagem("Não foi possível salvar as configurações.");
+      setMensagem(
+        erro instanceof Error
+          ? erro.message
+          : "Não foi possível salvar as configurações."
+      );
+    } finally {
+      setSalvando(false);
     }
   }
 
@@ -142,6 +213,12 @@ export function Configuracao() {
     }
   }
 
+  const mostrarBotaoSalvar = [
+    "Geral",
+    "Notificações",
+    "Regras da escola",
+    "RFID",
+  ].includes(aba);
 
   return (
     <main className="app-shell">
@@ -190,11 +267,15 @@ export function Configuracao() {
 
         <div className="min-h-0 flex-1 overflow-y-auto">
           <div className="app-page-grid">
-            
-
             {mensagem && (
               <div className="rounded-lg border border-green-500/30 bg-green-500/10 p-3 text-sm text-green-700 dark:text-green-300">
                 {mensagem}
+              </div>
+            )}
+
+            {carregando && (
+              <div className="app-card p-4 text-sm app-muted">
+                Carregando configurações do servidor...
               </div>
             )}
 
@@ -240,7 +321,11 @@ export function Configuracao() {
                       <label className="mb-2 block text-sm font-medium">
                         Nome
                       </label>
-                      <input value={usuario?.nome ?? ""} readOnly className="app-input w-full" />
+                      <input
+                        value={usuario?.nome ?? ""}
+                        readOnly
+                        className="app-input w-full"
+                      />
                     </div>
 
                     <div>
@@ -283,29 +368,30 @@ export function Configuracao() {
                     <div>
                       <h3 className="font-semibold">Preferências gerais</h3>
                       <p className="app-muted text-sm">
-                        Configurações básicas do sistema
+                        Personalize a aparência do EduControl
                       </p>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    <div>
-                      <label className="mb-2 block text-sm font-medium">
-                        Aparência
-                      </label>
-                      <p className="app-muted rounded-lg border border-slate-200 p-3 text-sm dark:border-white/10">
-                        Tema automático do sistema
-                      </p>
-                    </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-medium">
+                      Tema do sistema
+                    </label>
 
-                    <div>
-                      <label className="mb-2 block text-sm font-medium">
-                        Idioma
-                      </label>
-                      <p className="app-muted rounded-lg border border-slate-200 p-3 text-sm dark:border-white/10">
-                        Português (Brasil)
-                      </p>
-                    </div>
+                    <select
+                      value={aparencia}
+                      onChange={(e) => alterarAparencia(e.target.value)}
+                      disabled={!podeEditarAba || carregando}
+                      className="app-input w-full max-w-md disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <option value="claro">Claro</option>
+                      <option value="escuro">Escuro</option>
+                      <option value="auto">Automático (sistema)</option>
+                    </select>
+
+                    <p className="app-muted mt-2 text-sm">
+                      A alteração é aplicada imediatamente em todas as páginas.
+                    </p>
                   </div>
                 </section>
               </>
@@ -368,13 +454,16 @@ export function Configuracao() {
                     >
                       <div>
                         <p className="font-medium">{item.titulo}</p>
-                        <p className="app-muted text-sm">{item.descricao}</p>
+                        <p className="app-muted text-sm">
+                          {item.descricao}
+                        </p>
                       </div>
+
                       <input
                         type="checkbox"
                         checked={item.valor}
                         onChange={(e) => item.alterar(e.target.checked)}
-                        disabled={!podeEditarNotificacoes}
+                        disabled={!podeEditarNotificacoes || carregando}
                         className="h-4 w-4 accent-[#0d8f7b] disabled:cursor-not-allowed disabled:opacity-50"
                       />
                     </div>
@@ -400,16 +489,18 @@ export function Configuracao() {
                     <label className="mb-2 block text-sm font-medium">
                       Horário limite
                     </label>
+
                     <div className="relative">
                       <Clock
                         size={18}
                         className="absolute left-3 top-3 text-gray-400"
                       />
+
                       <input
                         type="time"
                         value={horarioLimite}
                         onChange={(e) => setHorarioLimite(e.target.value)}
-                        disabled={!podeEditarRegras}
+                        disabled={!podeEditarRegras || carregando}
                         className="app-input w-full pl-10 disabled:cursor-not-allowed disabled:opacity-60"
                       />
                     </div>
@@ -419,10 +510,11 @@ export function Configuracao() {
                     <label className="mb-2 block text-sm font-medium">
                       Ano letivo
                     </label>
+
                     <select
                       value={anoLetivo}
                       onChange={(e) => setAnoLetivo(e.target.value)}
-                      disabled={!podeEditarRegras}
+                      disabled={!podeEditarRegras || carregando}
                       className="app-input w-full disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       <option value="2026">2026</option>
@@ -435,10 +527,11 @@ export function Configuracao() {
                     <label className="mb-2 block text-sm font-medium">
                       Turno
                     </label>
+
                     <select
                       value={turno}
                       onChange={(e) => setTurno(e.target.value)}
-                      disabled={!podeEditarRegras}
+                      disabled={!podeEditarRegras || carregando}
                       className="app-input w-full disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       <option>Matutino</option>
@@ -449,8 +542,7 @@ export function Configuracao() {
                 </div>
 
                 <p className="app-muted mt-4 text-sm">
-                  As preferências ficam salvas no navegador. Para aplicar
-                  regras reais de presença, será necessário conectar a API.
+                  As regras são carregadas e salvas pelo servidor Java.
                 </p>
               </section>
             )}
@@ -529,6 +621,7 @@ export function Configuracao() {
                       </p>
                     </div>
                   </div>
+
                   <ChevronRight size={20} />
                 </button>
 
@@ -556,30 +649,45 @@ export function Configuracao() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 rounded-lg border border-slate-200 p-4 dark:border-white/10">
-                  <Radio size={22} />
-                  <div>
-                    <p className="font-medium">Leitor de cartões</p>
-                    <p className="app-muted text-sm">
-                      {leitorAtivo()
-                        ? "Ativo. Use o card Leitor RFID na tela inicial para ativar, desativar e simular leituras."
-                        : "Inativo. Use o card Leitor RFID na tela inicial para ativar e simular leituras."}{" "}
-                      O status real do leitor virá da API.
-                    </p>
+                <div className="flex items-center justify-between gap-4 rounded-lg border border-slate-200 p-4 dark:border-white/10">
+                  <div className="flex items-center gap-3">
+                    <Radio size={22} />
+                    <div>
+                      <p className="font-medium">Leitor de cartões</p>
+                      <p className="app-muted text-sm">
+                        {rfidAtivo
+                          ? "Leitor configurado como ativo."
+                          : "Leitor configurado como inativo."}
+                      </p>
+                    </div>
                   </div>
+
+                  <input
+                    type="checkbox"
+                    checked={rfidAtivo}
+                    onChange={(e) => setRfidAtivo(e.target.checked)}
+                    disabled={!podeEditarRFID || carregando}
+                    className="h-4 w-4 accent-[#0d8f7b] disabled:cursor-not-allowed disabled:opacity-50"
+                  />
                 </div>
+
+                <p className="app-muted mt-4 text-sm">
+                  Este controle representa a configuração salva no Java.
+                  Ele não confirma, sozinho, se o hardware está conectado.
+                </p>
               </section>
             )}
 
-            {podeEditarAba && (
+            {mostrarBotaoSalvar && podeEditarAba && (
               <div className="flex justify-end pb-6">
                 <button
                   type="button"
                   onClick={salvarConfiguracoes}
-                  className="flex items-center gap-2 rounded-lg bg-[#0d8f7b] px-5 py-3 font-semibold text-white transition hover:bg-[#0b7567]"
+                  disabled={salvando || carregando}
+                  className="flex items-center gap-2 rounded-lg bg-[#0d8f7b] px-5 py-3 font-semibold text-white transition hover:bg-[#0b7567] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <Save size={18} />
-                  Salvar configurações
+                  {salvando ? "Salvando..." : "Salvar configurações"}
                 </button>
               </div>
             )}
@@ -618,6 +726,7 @@ export function Configuracao() {
                 <label className="mb-2 block text-sm font-medium">
                   Senha atual
                 </label>
+
                 <input
                   type="password"
                   value={senhaAtual}
@@ -631,6 +740,7 @@ export function Configuracao() {
                 <label className="mb-2 block text-sm font-medium">
                   Nova senha
                 </label>
+
                 <input
                   type="password"
                   value={senhaNova}
@@ -645,6 +755,7 @@ export function Configuracao() {
                 <label className="mb-2 block text-sm font-medium">
                   Confirmar nova senha
                 </label>
+
                 <input
                   type="password"
                   value={confirmarSenha}

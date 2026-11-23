@@ -1,3 +1,4 @@
+
 import {
   isRouteErrorResponse,
   Links,
@@ -7,9 +8,10 @@ import {
   ScrollRestoration,
 } from "react-router";
 
+import { useEffect } from "react";
 import type { Route } from "./+types/root";
+import { buscarConfiguracaoGeral } from "./services/api";
 import "./app.css";
-
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -26,7 +28,7 @@ export const links: Route.LinksFunction = () => [
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="pt-BR">
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -43,34 +45,68 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
+  useEffect(() => {
+    let ativo = true;
+    let removerListener = () => {};
+
+    function aplicarTema(preferencia: string) {
+      removerListener();
+      removerListener = () => {};
+
+      const tema = (preferencia || "auto").toLowerCase().trim();
+
+      const automatico = ["auto", "automático", "automatico"].includes(tema);
+      const escuro = ["escuro", "dark"].includes(tema);
+
+      if (automatico) {
+        const sistema = window.matchMedia("(prefers-color-scheme: dark)");
+
+        const atualizarTema = () => {
+          document.documentElement.classList.toggle("dark", sistema.matches);
+          document.documentElement.style.colorScheme = sistema.matches
+            ? "dark"
+            : "light";
+        };
+
+        atualizarTema();
+        sistema.addEventListener("change", atualizarTema);
+
+        removerListener = () => {
+          sistema.removeEventListener("change", atualizarTema);
+        };
+
+        return;
+      }
+
+      document.documentElement.classList.toggle("dark", escuro);
+      document.documentElement.style.colorScheme = escuro ? "dark" : "light";
+    }
+
+    const receberTema = (evento: Event) => {
+      const customizado = evento as CustomEvent<string>;
+      aplicarTema(customizado.detail ?? "auto");
+    };
+
+    window.addEventListener("educontrol-tema-alterado", receberTema);
+
+    buscarConfiguracaoGeral()
+      .then((config) => {
+        if (ativo) {
+          aplicarTema(config.aparencia ?? "auto");
+        }
+      })
+      .catch(() => {
+        if (ativo) {
+          aplicarTema("auto");
+        }
+      });
+
+    return () => {
+      ativo = false;
+      removerListener();
+      window.removeEventListener("educontrol-tema-alterado", receberTema);
+    };
+  }, []);
+
   return <Outlet />;
-}
-
-export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
-  let message = "Oops!";
-  let details = "An unexpected error occurred.";
-  let stack: string | undefined;
-
-  if (isRouteErrorResponse(error)) {
-    message = error.status === 404 ? "404" : "Error";
-    details =
-      error.status === 404
-        ? "The requested page could not be found."
-        : error.statusText || details;
-  } else if (import.meta.env.DEV && error && error instanceof Error) {
-    details = error.message;
-    stack = error.stack;
-  }
-
-  return (
-    <main className="pt-16 p-4 container mx-auto">
-      <h1>{message}</h1>
-      <p>{details}</p>
-      {stack && (
-        <pre className="w-full p-4 overflow-x-auto">
-          <code>{stack}</code>
-        </pre>
-      )}
-    </main>
-  );
 }

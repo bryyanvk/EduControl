@@ -83,7 +83,7 @@ public class AlunoRepository {
                 a.setCpf(alunoUpdate.getCpf());
                 a.setTurma(alunoUpdate.getTurma());
                 a.setTurno(alunoUpdate.getTurno());
-                a.setResponsasvelNome(alunoUpdate.getResponsasvelNome());
+                a.setResponsavelNome(alunoUpdate.getResponsavelNome());
                 a.setParentesco(alunoUpdate.getParentesco());
                 a.setResponsavelTelefone(alunoUpdate.getResponsavelTelefone());
                 a.setResponsavelEmail(alunoUpdate.getResponsavelEmail());

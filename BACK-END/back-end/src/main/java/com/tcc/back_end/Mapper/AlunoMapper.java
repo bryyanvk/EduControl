@@ -19,7 +19,7 @@ public class AlunoMapper {
         aluno.setCpf(dto.getCpf());
         aluno.setTurma(turma);
         aluno.setTurno(dto.getTurno());
-        aluno.setResponsasvelNome(dto.getResponsasvelNome());
+        aluno.setResponsavelNome(dto.getResponsavelNome());
         aluno.setParentesco(dto.getParentesco());
         aluno.setResponsavelTelefone(dto.getResponsavelTelefone());
         aluno.setResponsavelEmail(dto.getResponsavelEmail());
@@ -48,7 +48,7 @@ public class AlunoMapper {
         dto.setDataNascimento(aluno.getDataNascimento());
         dto.setCpf(aluno.getCpf());
         dto.setTurno(aluno.getTurno());
-        dto.setResponsasvelNome(aluno.getResponsasvelNome());
+        dto.setResponsavelNome(aluno.getResponsavelNome());
         dto.setParentesco(aluno.getParentesco());
         dto.setResponsavelTelefone(aluno.getResponsavelTelefone());
         dto.setResponsavelEmail(aluno.getResponsavelEmail());

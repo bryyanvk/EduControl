@@ -1,3 +1,4 @@
+
 package com.tcc.back_end.Model;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
@@ -6,13 +7,15 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Turma {
+
     private Integer id;
     private String nome;
     private String curso;
+
     @JsonManagedReference
     private List<Aluno> alunos = new ArrayList<>();
-    private String  turno;
 
+    private String turno;
 
     public Turma() {
     }
@@ -22,7 +25,7 @@ public class Turma {
         this.turno = turno;
         this.curso = curso;
         this.nome = nome;
-        this.alunos = alunos;
+        this.alunos = alunos != null ? alunos : new ArrayList<>();
     }
 
     public Integer getId() {
@@ -54,7 +57,7 @@ public class Turma {
     }
 
     public void setAlunos(List<Aluno> alunos) {
-        this.alunos = alunos;
+        this.alunos = alunos != null ? alunos : new ArrayList<>();
     }
 
     public String getTurno() {

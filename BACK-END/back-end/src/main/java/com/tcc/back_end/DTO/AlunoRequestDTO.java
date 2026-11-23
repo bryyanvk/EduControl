@@ -11,7 +11,7 @@ public class AlunoRequestDTO {
     private String cpf;
     private Integer turmaId;
     private String turno;
-    private String responsasvelNome;
+    private String responsavelNome;
     private String parentesco;
     private String responsavelTelefone;
     private String responsavelEmail;
@@ -77,12 +77,12 @@ public class AlunoRequestDTO {
         this.turno = turno;
     }
 
-    public String getResponsasvelNome() {
-        return responsasvelNome;
+    public String getResponsavelNome() {
+        return responsavelNome;
     }
 
-    public void setResponsasvelNome(String responsasvelNome) {
-        this.responsasvelNome = responsasvelNome;
+    public void setResponsavelNome(String responsavelNome) {
+        this.responsavelNome = responsavelNome;
     }
 
     public String getParentesco() {
