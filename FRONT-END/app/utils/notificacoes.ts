@@ -32,7 +32,7 @@ export function criarNotificacoes() {
 
   if (pendentes > 0) {
     lista.push({
-    
+      id: "pendentes:" + pendentes + ":" + hoje,
       titulo: pendentes + " alunos sem chamada hoje",
       texto: "Registre a presença para fechar o dia.",
       rota: "/presenca",
