@@ -30,6 +30,7 @@ export function criarNotificacoes() {
 
   const lista = [];
 
+  
   if (pendentes > 0) {
     lista.push({
       id: "pendentes:" + pendentes + ":" + hoje,
