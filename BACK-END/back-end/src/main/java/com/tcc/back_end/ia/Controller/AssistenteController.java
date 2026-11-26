@@ -3,43 +3,55 @@ package com.tcc.back_end.ia.Controller;
 
 import com.tcc.back_end.ia.DTO.PerguntaIARequest;
 import com.tcc.back_end.ia.DTO.RespostaIAResponse;
-import com.tcc.back_end.ia.Service.GeminiService;
+import com.tcc.back_end.ia.Service.AssistenteIAService;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api/ia")
 public class AssistenteController {
 
-    private final GeminiService geminiService;
+    private final AssistenteIAService assistente;
 
-    public AssistenteController(GeminiService geminiService) {
-        this.geminiService = geminiService;
+    public AssistenteController(AssistenteIAService assistente) {
+        this.assistente = assistente;
     }
 
+    /**
+     * Contrato antigo mantido: corpo {"pergunta": "..."} e resposta com "resposta".
+     * Novo: quando a IA propõe uma alteração, a resposta traz "acaoPendente".
+     */
     @PostMapping("/perguntar")
     public RespostaIAResponse perguntar(
             @RequestBody PerguntaIARequest request
     ) {
-        if (request.pergunta() == null ||
+        if (request == null || request.pergunta() == null ||
                 request.pergunta().isBlank()) {
-            throw new IllegalArgumentException(
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
                     "A pergunta não pode estar vazia."
             );
         }
 
-        String resposta = geminiService.gerarResposta(
-                request.pergunta()
-        );
+        return assistente.perguntar(request.pergunta());
+    }
 
-        return new RespostaIAResponse(resposta);
+    /** Passo 2: o usuário confirmou a ação proposta; o back executa. */
+    @PostMapping("/acoes/{id}/confirmar")
+    public RespostaIAResponse confirmar(@PathVariable String id) {
+        return assistente.confirmar(id);
+    }
+
+    /** O usuário recusou a ação proposta; nada é alterado. */
+    @PostMapping("/acoes/{id}/cancelar")
+    public RespostaIAResponse cancelar(@PathVariable String id) {
+        return assistente.cancelar(id);
     }
 
     @GetMapping("/resumo-diario")
     public RespostaIAResponse gerarResumoDiario() {
-
-        String resumo = geminiService.gerarResumoDiario();
-
-        return new RespostaIAResponse(resumo);
+        return new RespostaIAResponse(assistente.gerarResumoDiario());
     }
 }

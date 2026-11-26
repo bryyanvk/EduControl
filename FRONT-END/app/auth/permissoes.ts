@@ -12,8 +12,17 @@ const PERMISSOES_SECRETARIO = [
   "alunos.editar",
   "presenca.registrar",
   "presenca.corrigir",
-  "configuracoes.pessoais",
-  "configuracoes.notificacoesGlobais",
+  "perfil.editarProprio",
+  "perfil.alterarSenha",
+];
+
+const PERMISSOES_PROFESSOR = [
+  "pagina.inicio",
+  "pagina.ia",
+  "pagina.presenca",
+  "pagina.salas",
+  "pagina.alunos",
+  "pagina.perfil",
   "perfil.editarProprio",
   "perfil.alterarSenha",
 ];
@@ -25,6 +34,9 @@ export function temPermissao(perfil: string | null, permissao: string) {
   if (perfil === "secretario") {
     return PERMISSOES_SECRETARIO.includes(permissao);
   }
+  if (perfil === "professor") {
+    return PERMISSOES_PROFESSOR.includes(permissao);
+  }
   return false;
 }
 
@@ -34,6 +46,9 @@ export function nomeDoPerfil(perfil: string) {
   }
   if (perfil === "secretario") {
     return "Secretário";
+  }
+  if (perfil === "professor") {
+    return "Professor";
   }
   return "";
 }

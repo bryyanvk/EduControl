@@ -1,17 +1,19 @@
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { CampoFormulario } from "~/components/CampoFormulario";
-import { enviarTurma, editarTurma } from "~/services/api";
+import { enviarTurma, editarTurma, textoDoErro } from "~/services/api";
 
 export function NovaTurma({ aoFechar, aoSalvar, turmasExistentes, proximoId, turmaEditando }: any) {
   let formInicial = {
     nome: "",
     curso: "",
+    turno: "Manhã",
   };
   if (turmaEditando) {
     formInicial = {
       nome: turmaEditando.nome,
       curso: turmaEditando.curso,
+      turno: turmaEditando.turno || "Manhã",
     };
   }
   const [form, setForm] = useState(formInicial);
@@ -63,9 +65,9 @@ export function NovaTurma({ aoFechar, aoSalvar, turmasExistentes, proximoId, tur
       return;
     }
 
-    let turma: any = { id: proximoId, nome: nome, curso: curso };
+    let turma: any = { id: proximoId, nome: nome, curso: curso, turno: form.turno };
     if (turmaEditando) {
-      turma = { id: turmaEditando.id, nome: nome, curso: curso };
+      turma = { id: turmaEditando.id, nome: nome, curso: curso, turno: form.turno };
     }
 
     setSalvando(true);
@@ -82,9 +84,9 @@ export function NovaTurma({ aoFechar, aoSalvar, turmasExistentes, proximoId, tur
           aoSalvar({ id: turma.id, nome: nome, curso: curso, editou: false, nomeAntigo: nome });
         }
       })
-      .catch(() => {
+      .catch((erro: any) => {
         setSalvando(false);
-        setErros({ nome: "Não foi possível salvar. O back está rodando?" });
+        setErros({ nome: textoDoErro(erro, "Não foi possível salvar. O back está rodando?") });
       });
   }
 
@@ -123,6 +125,16 @@ export function NovaTurma({ aoFechar, aoSalvar, turmasExistentes, proximoId, tur
               value={form.curso}
               onChange={(e) => mudar("curso", e.target.value)}
             />
+          </CampoFormulario>
+          <CampoFormulario rotulo="Turno">
+            <select
+              className="app-input w-full"
+              value={form.turno}
+              onChange={(e) => mudar("turno", e.target.value)}
+            >
+              <option>Manhã</option>
+              <option>Tarde</option>
+            </select>
           </CampoFormulario>
         </div>
 

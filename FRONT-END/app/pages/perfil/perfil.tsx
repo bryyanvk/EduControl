@@ -37,9 +37,8 @@ import {
   registrarUltimoAcesso,
 } from "~/services/api";
 
-import Lohran from "../../../public/lohran-avatar.png";
+import { fotoOuPadrao, reduzirImagem } from "~/utils/fotoPerfil";
 
-const ID_USUARIO = 1;
 const TAMANHO_MAXIMO_FOTO = 2 * 1024 * 1024;
 
 const CLASSE_CAMPO =
@@ -55,6 +54,7 @@ function classeAviso(tipo: string) {
 
 export function Perfil() {
   const { usuario, pode, atualizarUsuario } = useUsuario();
+  const ID_USUARIO = usuario?.id ?? 0;
 
   const podeEditar = pode("perfil.editarProprio");
   const podeAlterarSenha = pode("perfil.alterarSenha");
@@ -124,6 +124,7 @@ export function Perfil() {
           email: dados.email ?? "",
           cargo: dados.cargo ?? "",
           telefone: formatarTelefone(dados.telefone ?? ""),
+          fotoPerfil: dados.fotoPerfil ?? "",
           membroDesde: dataCriacao,
           senhaAlteradaEm: dataSenha,
           ultimoAcessoEm: acesso,
@@ -231,7 +232,7 @@ export function Perfil() {
       nome: nomeLimpo,
       email: emailLimpo,
       telefone: telefoneLimpo,
-      fotoPerfil,
+      fotoPerfil: fotoPerfil,
     };
 
     setSalvando(true);
@@ -247,6 +248,7 @@ export function Perfil() {
         nome: nomeLimpo,
         email: emailLimpo,
         telefone,
+        fotoPerfil,
       });
 
       setAvisoPerfil({
@@ -284,7 +286,13 @@ export function Perfil() {
     }
 
     setErroFoto("");
-    setFotoPreview(URL.createObjectURL(arquivo));
+    reduzirImagem(arquivo)
+      .then((imagem) => {
+        // A foto só é gravada no back-end ao clicar em salvar.
+        setFotoPreview(imagem);
+        setFotoPerfil(imagem);
+      })
+      .catch((erro) => setErroFoto(erro.message));
   }
 
   function alterarSenha(evento: any) {
@@ -322,7 +330,7 @@ export function Perfil() {
 
             <div className="app-avatar">
               <img
-                src={fotoPreview || fotoPerfil || Lohran}
+                src={fotoOuPadrao(fotoPreview || fotoPerfil, nome)}
                 alt={usuario?.nome ?? "Perfil"}
                 className="h-full w-full rounded-full object-cover"
               />
@@ -341,7 +349,7 @@ export function Perfil() {
                 <div className="relative mb-4">
                   <div className="h-36 w-36 overflow-hidden rounded-full bg-[#dbe5e5]">
                     <img
-                      src={fotoPreview || fotoPerfil || Lohran}
+                      src={fotoOuPadrao(fotoPreview || fotoPerfil, nome)}
                       alt="Foto de perfil"
                       className="h-full w-full object-cover"
                     />
@@ -393,7 +401,7 @@ export function Perfil() {
 
                 {fotoPreview && !erroFoto && (
                   <p className="mt-3 text-center text-xs text-gray-400 dark:text-[#718985]">
-                    Pré-visualização. O envio definitivo da foto ainda depende da API.
+                    Nova foto selecionada. Clique em salvar para gravá-la.
                   </p>
                 )}
 

@@ -31,7 +31,7 @@ import {
   salvarConfiguracaoRFID,
 } from "~/services/api";
 
-import Lohran from "../../../public/lohran-avatar.png";
+import { fotoOuPadrao } from "~/utils/fotoPerfil";
 import { useNavigate } from "react-router";
 import { useState, useEffect } from "react";
 
@@ -252,7 +252,7 @@ export function Configuracao() {
             >
               <div className="app-avatar">
                 <img
-                  src={Lohran}
+                  src={fotoOuPadrao(usuario?.fotoPerfil, usuario?.nome)}
                   alt={usuario?.nome ?? "Usuário"}
                   className="h-full w-full rounded-full object-cover"
                 />

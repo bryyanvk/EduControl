@@ -32,7 +32,7 @@ import {
 import { useEffect, useState } from "react";
 import { filtrarAlunos, textoDaData } from "~/utils/filtros";
 import { useUsuario } from "~/hooks/useUsuario";
-import Lohran from "../../../public/lohran-avatar.png";
+import { fotoOuPadrao } from "~/utils/fotoPerfil";
 
 export function Alunos() {
   const [filtrosAbertos, setFiltrosAbertos] = useState(false);
@@ -68,7 +68,8 @@ export function Alunos() {
           const registrosDoAno = registrosDoAluno.filter(
             (registro) =>
               registro.data.startsWith(anoAtual) &&
-              registro.status !== "PENDENTE"
+              registro.status !== "PENDENTE" &&
+              registro.status !== "JUSTIFICADO"
           );
 
           const mediaAnual =
@@ -205,7 +206,7 @@ export function Alunos() {
 
             <div className="app-avatar">
               <img
-                src={Lohran}
+                src={fotoOuPadrao(usuario?.fotoPerfil, usuario?.nome)}
                 alt="Profile"
                 className="h-full w-full rounded-full object-cover"
               />

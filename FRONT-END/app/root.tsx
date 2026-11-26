@@ -11,6 +11,8 @@ import {
 import { useEffect } from "react";
 import type { Route } from "./+types/root";
 import { buscarConfiguracaoGeral } from "./services/api";
+import { ConsentimentoCookies } from "./components/ConsentimentoCookies";
+import { NaoEncontrado } from "./pages/erro/NaoEncontrado";
 import "./app.css";
 
 export const links: Route.LinksFunction = () => [
@@ -89,24 +91,53 @@ export default function App() {
 
     window.addEventListener("educontrol-tema-alterado", receberTema);
 
-    buscarConfiguracaoGeral()
-      .then((config) => {
-        if (ativo) {
-          aplicarTema(config.aparencia ?? "auto");
-        }
-      })
-      .catch(() => {
-        if (ativo) {
-          aplicarTema("auto");
-        }
-      });
+    // A configuração só pode ser lida com sessão ativa, então o tema salvo é
+    // carregado de novo logo após o login.
+    function carregarTema() {
+      buscarConfiguracaoGeral()
+        .then((config) => {
+          if (ativo) {
+            aplicarTema(config.aparencia ?? "auto");
+          }
+        })
+        .catch(() => {
+          if (ativo) {
+            aplicarTema("auto");
+          }
+        });
+    }
+
+    carregarTema();
+    window.addEventListener("educontrol-login", carregarTema);
 
     return () => {
       ativo = false;
       removerListener();
       window.removeEventListener("educontrol-tema-alterado", receberTema);
+      window.removeEventListener("educontrol-login", carregarTema);
     };
   }, []);
 
-  return <Outlet />;
+  return (
+    <>
+      <Outlet />
+      <ConsentimentoCookies />
+    </>
+  );
+}
+
+export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
+  if (isRouteErrorResponse(error) && error.status === 404) {
+    return <NaoEncontrado />;
+  }
+
+  return (
+    <main className="flex min-h-screen flex-col items-center justify-center gap-3 p-6 text-center">
+      <h1 className="text-2xl font-bold">Algo deu errado</h1>
+      <p className="text-gray-600">Ocorreu um erro inesperado. Tente recarregar a página.</p>
+      <a href="/" className="rounded-lg bg-[#0d4c5c] px-4 py-2 text-white">
+        Voltar para o início
+      </a>
+    </main>
+  );
 }

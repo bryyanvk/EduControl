@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { Radio } from "lucide-react";
 
-const API = "http://localhost:8080/edu";
+import { API, requisitar } from "~/services/api";
 
 type LeitorRfidProps = {
   podeAlterar: boolean;
@@ -18,7 +18,11 @@ export function LeitorRfid({ podeAlterar }: LeitorRfidProps) {
     try {
       setErro("");
 
-      const resposta = await fetch(`${API}/rfid/estado`);
+      const resposta = await requisitar(`${API}/rfid/estado`);
+
+      if (resposta.status === 403) {
+        throw new Error("Seu perfil não tem permissão para consultar o leitor RFID.");
+      }
 
       if (!resposta.ok) {
         throw new Error("Não foi possível consultar o estado do RFID.");
@@ -27,8 +31,12 @@ export function LeitorRfid({ podeAlterar }: LeitorRfidProps) {
       const estado: boolean = await resposta.json();
 
       setAtivo(estado);
-    } catch {
-      setErro("Não foi possível consultar o RFID. Verifique o backend.");
+    } catch (erro: any) {
+      setErro(
+        erro instanceof TypeError
+          ? "Não foi possível consultar o RFID. Verifique o backend."
+          : erro.message || "Não foi possível consultar o RFID."
+      );
     } finally {
       setCarregando(false);
     }
@@ -45,12 +53,16 @@ export function LeitorRfid({ podeAlterar }: LeitorRfidProps) {
       setAlterando(true);
       setErro("");
 
-      const resposta = await fetch(
+      const resposta = await requisitar(
         `${API}/rfid/estado?ativo=${novoEstado}`,
         {
           method: "PUT",
         },
       );
+
+      if (resposta.status === 403) {
+        throw new Error("Somente o administrador pode ativar ou desativar o leitor RFID.");
+      }
 
       if (!resposta.ok) {
         throw new Error("Não foi possível alterar o estado do RFID.");
@@ -58,8 +70,12 @@ export function LeitorRfid({ podeAlterar }: LeitorRfidProps) {
 
       await resposta.text();
       setAtivo(novoEstado);
-    } catch {
-      setErro("Não foi possível alterar o RFID. Tente novamente.");
+    } catch (erro: any) {
+      setErro(
+        erro instanceof TypeError
+          ? "Não foi possível alterar o RFID. Tente novamente."
+          : erro.message || "Não foi possível alterar o RFID."
+      );
     } finally {
       setAlterando(false);
     }

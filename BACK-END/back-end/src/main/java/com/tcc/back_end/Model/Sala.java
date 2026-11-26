@@ -2,6 +2,8 @@ package com.tcc.back_end.Model;
 
 import com.tcc.back_end.Model.Enum.StatusSala;
 
+import com.fasterxml.jackson.annotation.JsonSetter;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -61,5 +63,16 @@ public class Sala {
 
     public void setTurmas(List<Turma> turmas) {
         this.turmas = turmas != null ? turmas : new ArrayList<>();
+    }
+
+    // Aceita o formato antigo do front ("turma": {...}) como uma lista de uma turma.
+    // So entra na leitura do JSON; a resposta continua trazendo apenas "turmas".
+    @JsonSetter("turma")
+    public void setTurmaUnica(Turma turma) {
+        List<Turma> lista = new ArrayList<>();
+        if (turma != null) {
+            lista.add(turma);
+        }
+        this.turmas = lista;
     }
 }

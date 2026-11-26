@@ -2,8 +2,10 @@
 package com.tcc.back_end.Model;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.Period;
 
 public class Aluno {
@@ -25,6 +27,14 @@ public class Aluno {
     private String responsavelEmail;
     private String endereco;
     private LocalDate dataMatricula;
+
+    // Exclusão lógica: o aluno some das listagens e buscas, mas os registros
+    // de presença continuam apontando para ele (histórico preservado).
+    @JsonIgnore
+    private boolean excluido;
+
+    @JsonIgnore
+    private LocalDateTime excluidoEm;
 
     public Aluno() {
     }
@@ -171,6 +181,22 @@ public class Aluno {
 
     public void setDataMatricula(LocalDate dataMatricula) {
         this.dataMatricula = dataMatricula;
+    }
+
+    public boolean isExcluido() {
+        return excluido;
+    }
+
+    public void setExcluido(boolean excluido) {
+        this.excluido = excluido;
+    }
+
+    public LocalDateTime getExcluidoEm() {
+        return excluidoEm;
+    }
+
+    public void setExcluidoEm(LocalDateTime excluidoEm) {
+        this.excluidoEm = excluidoEm;
     }
 
     public int calcularIdade() {

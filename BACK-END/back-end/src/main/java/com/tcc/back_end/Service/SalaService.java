@@ -14,51 +14,89 @@ public class SalaService {
 
     private SalaRepository salaRepository;
     private TurmaRepository turmaRepository;
+    private NotificacaoService notificacaoService;
 
-    public SalaService(SalaRepository salaRepository, TurmaRepository turmaRepository) {
+    public SalaService(
+            SalaRepository salaRepository,
+            TurmaRepository turmaRepository,
+            NotificacaoService notificacaoService
+    ) {
         this.salaRepository = salaRepository;
         this.turmaRepository = turmaRepository;
+        this.notificacaoService = notificacaoService;
     }
 
-    public String CadastrarSala(Sala sala){
-
-        if( sala.getTurmas() == null  || sala.getTurmas().isEmpty()){
-            return "É necessário informar uma turma!";
-        }
+    // Valida as turmas informadas e devolve as turmas reais do sistema.
+    // A sala pode ficar sem turma (lista nula ou vazia).
+    // numeroSalaIgnorada: sala que está sendo editada (suas turmas atuais não contam como conflito).
+    private List<Turma> validarTurmas(List<Turma> informadas, Integer numeroSalaIgnorada) {
 
         List<Turma> turmasValidas = new ArrayList<>();
 
-        for (Turma turmaInformada : sala.getTurmas()){
-            if (turmaInformada.getId() == null){
-                return "É necessário informa o id da turma! ";
+        if (informadas == null) {
+            return turmasValidas;
+        }
+
+        for (Turma turmaInformada : informadas){
+
+            if (turmaInformada == null || turmaInformada.getId() == null){
+                throw new IllegalArgumentException("É necessário informar o id da turma!");
             }
 
             Turma turma = turmaRepository.BuscarTurma(turmaInformada.getId());
 
             if (turma == null ){
-                return "Turma não encontrada";
+                throw new IllegalArgumentException("Turma não encontrada");
             }
 
             for(Turma turmaExistente : turmasValidas){
-                if (turmaExistente.getTurno().equalsIgnoreCase(turma.getTurno())){
-                    return "Já existe turma cadastrada nesse turno";
+                if (turmaExistente.getId().equals(turma.getId())){
+                    throw new IllegalArgumentException("A mesma turma foi informada mais de uma vez");
+                }
+
+                if (turmaExistente.getTurno() != null
+                        && turmaExistente.getTurno().equalsIgnoreCase(turma.getTurno())){
+                    throw new IllegalArgumentException("Já existe turma cadastrada nesse turno");
                 }
             }
 
             for(Sala salaExistente : salaRepository.getListaDeSala()){
+
+                if (numeroSalaIgnorada != null
+                        && numeroSalaIgnorada.equals(salaExistente.getNumero())){
+                    continue;
+                }
+
                 for (Turma turmaExistente : salaExistente.getTurmas()){
                     if (turmaExistente.getId().equals(turma.getId())){
-                        return "Essa turma ja esta associada a outra sala";
+                        throw new IllegalArgumentException("Essa turma ja esta associada a outra sala");
                     }
                 }
             }
+
             turmasValidas.add(turma);
         }
 
-       sala.setTurmas(turmasValidas);
+        return turmasValidas;
+    }
 
+    public String CadastrarSala(Sala sala){
 
-        return salaRepository.CadrastarSala(sala);
+        if (sala == null) {
+            return "É necessário informar os dados da sala!";
+        }
+
+        try {
+            sala.setTurmas(validarTurmas(sala.getTurmas(), null));
+        } catch (IllegalArgumentException erro) {
+            return erro.getMessage();
+        }
+
+        String resultado = salaRepository.CadrastarSala(sala);
+
+        notificacaoService.registrarNovaSala(sala);
+
+        return resultado;
     }
 
     public List<Sala> getListaDeSala(){
@@ -70,6 +108,18 @@ public class SalaService {
     }
 
     public String updateSala(Integer numero, Sala sala){
+
+        if (sala == null) {
+            return "É necessário informar os dados da sala!";
+        }
+
+        // Permite vincular (ou remover) turmas depois do cadastro da sala.
+        try {
+            sala.setTurmas(validarTurmas(sala.getTurmas(), numero));
+        } catch (IllegalArgumentException erro) {
+            return erro.getMessage();
+        }
+
         return salaRepository.updateSala(numero,sala);
     }
 

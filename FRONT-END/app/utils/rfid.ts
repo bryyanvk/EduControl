@@ -1,10 +1,13 @@
+import { gravarNaoEssencial } from "~/utils/cookies";
 import { alunosDeHoje, lerRegistros, salvarRegistros, horaAgora } from "~/utils/registroHoje";
 import { textoDaData } from "~/utils/filtros";
 
 const CHAVE_ATIVO = "educontrol:rfid-ativo";
 const CHAVE_ULTIMA = "educontrol:rfid-ultima";
 
-export const LIMITE_ATRASO = "07:15";
+// Valor padrão do back (horário limite configurável em /edu/config/regras). Em uso real, quem decide
+// presente/atrasado é o back-end ao receber POST /edu/rfid; esta constante só vale para a simulação local.
+export const LIMITE_ATRASO = "07:10";
 
 export function leitorAtivo() {
   try {
@@ -75,7 +78,7 @@ export function lerCartao(cartao: string, hora: string = horaAgora()) {
 
   const leitura = { data: textoDaData(new Date()), nome: aluno.nome, status: status, hora: hora, cartao: numero };
   try {
-    localStorage.setItem(CHAVE_ULTIMA, JSON.stringify(leitura));
+    gravarNaoEssencial(CHAVE_ULTIMA, JSON.stringify(leitura));
   } catch {
     return { ok: true, mensagem: aluno.nome + ": " + status + " às " + hora + ".", leitura: leitura };
   }

@@ -3,6 +3,8 @@ package com.tcc.back_end.ia.Service;
 
 import com.tcc.back_end.DTO.AlunoResponseDTO;
 import com.tcc.back_end.DTO.PresencaResponseDTO;
+import com.tcc.back_end.DTO.TeamResponseDTO;
+import com.tcc.back_end.Model.Enum.TipoAcesso;
 import com.tcc.back_end.Model.Notificacao;
 import com.tcc.back_end.Model.Sala;
 import com.tcc.back_end.Model.Turma;
@@ -10,6 +12,7 @@ import com.tcc.back_end.Service.AlunoService;
 import com.tcc.back_end.Service.NotificacaoService;
 import com.tcc.back_end.Service.PresencaService;
 import com.tcc.back_end.Service.SalaService;
+import com.tcc.back_end.Service.TeamService;
 import com.tcc.back_end.Service.TurmaService;
 
 import org.springframework.stereotype.Service;
@@ -30,19 +33,22 @@ public class ContextoEscolarService {
     private final SalaService salaService;
     private final PresencaService presencaService;
     private final NotificacaoService notificacaoService;
+    private final TeamService teamService;
 
     public ContextoEscolarService(
             AlunoService alunoService,
             TurmaService turmaService,
             SalaService salaService,
             PresencaService presencaService,
-            NotificacaoService notificacaoService) {
+            NotificacaoService notificacaoService,
+            TeamService teamService) {
 
         this.alunoService = alunoService;
         this.turmaService = turmaService;
         this.salaService = salaService;
         this.presencaService = presencaService;
         this.notificacaoService = notificacaoService;
+        this.teamService = teamService;
     }
 
     public String montarContextoEscolar() {
@@ -129,7 +135,27 @@ public class ContextoEscolarService {
                 .append(salas.size()).append("\n");
 
         contexto.append("Total de registros de frequência: ")
-                .append(presencas.size()).append("\n\n");
+                .append(presencas.size()).append("\n");
+
+        // EQUIPE: somente contagens (dados agregados, sem dados pessoais).
+        List<TeamResponseDTO> equipe = teamService.getListaTeam();
+
+        if (equipe == null) equipe = List.of();
+
+        for (TipoAcesso tipo : TipoAcesso.values()) {
+
+            long total = equipe.stream()
+                    .filter(m -> m.getTipoAcesso() == tipo)
+                    .count();
+
+            contexto.append("Equipe cadastrada com perfil ")
+                    .append(tipo.name())
+                    .append(": ")
+                    .append(total)
+                    .append("\n");
+        }
+
+        contexto.append("\n");
 
         // NOTIFICAÇÕES
 
@@ -445,6 +471,11 @@ public class ContextoEscolarService {
                 - Não exponha CPF, endereço, data de nascimento,
                   informações de responsáveis ou dados RFID.
                 - Não execute alterações no sistema.
+                - Telefones da equipe e alterações de configurações são
+                  tratados pelo sistema com verificação de permissão:
+                  nunca informe telefone de ninguém nem diga que alterou
+                  algo; se perguntarem, oriente a pedir de forma direta
+                  (ex.: "telefone do professor Fulano").
                 """);
 
         return contexto.toString();

@@ -3,6 +3,7 @@ package com.tcc.back_end.Service;
 
 import com.tcc.back_end.DTO.AlunoRequestDTO;
 import com.tcc.back_end.DTO.AlunoResponseDTO;
+import com.tcc.back_end.DTO.CartaoRFIDDTO;
 import com.tcc.back_end.Mapper.AlunoMapper;
 import com.tcc.back_end.Model.Aluno;
 import com.tcc.back_end.Model.Turma;
@@ -53,9 +54,38 @@ public class AlunoService {
         }
     }
 
-    public String CadastrarAluno(AlunoRequestDTO dto) {
+    // O UID do cartão RFID não pode estar em uso por outro aluno (ativo).
+    private void validarCartao(CartaoRFIDDTO cartao, Integer alunoIdIgnorado) {
+
+        if (cartao == null
+                || cartao.getUid() == null
+                || cartao.getUid().isBlank()) {
+            return;
+        }
+
+        cartao.setUid(cartao.getUid().trim());
+
+        Aluno dono = alunorepository.buscarDonoDoCartao(
+                cartao.getUid(),
+                alunoIdIgnorado
+        );
+
+        if (dono != null) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Este cartão RFID (" + cartao.getUid()
+                            + ") já está vinculado ao aluno " + dono.getNome()
+                            + " (matrícula " + dono.getMatricula()
+                            + "). Use outro cartão ou remova o cartão do outro aluno antes."
+            );
+        }
+    }
+
+    public synchronized String CadastrarAluno(AlunoRequestDTO dto) {
 
         validarMatricula(dto.getMatricula(), null);
+
+        validarCartao(dto.getCartao(), null);
 
         if (dto.getTurmaId() == null) {
             return "É necessário informar uma turma!";
@@ -104,7 +134,7 @@ public class AlunoService {
         return AlunoMapper.toResponse(aluno);
     }
 
-    public String updateAluno(int id, AlunoRequestDTO dto) {
+    public synchronized String updateAluno(int id, AlunoRequestDTO dto) {
 
         Aluno alunoAtual = alunorepository.buscarAlunoPorId(id);
 
@@ -113,6 +143,8 @@ public class AlunoService {
         }
 
         validarMatricula(dto.getMatricula(), id);
+
+        validarCartao(dto.getCartao(), id);
 
         if (dto.getTurmaId() == null) {
             return "É necessário informar uma turma!";
@@ -163,6 +195,12 @@ public class AlunoService {
             turma.getAlunos().remove(aluno);
         }
 
-        return alunorepository.deleteAluno(id);
+        // Exclusão lógica: o aluno some das listagens e da presença,
+        // mas o histórico de presença é preservado.
+        String resultado = alunorepository.deleteAluno(id);
+
+        notificacaoService.removerAlertasDoAluno(id);
+
+        return resultado;
     }
 }

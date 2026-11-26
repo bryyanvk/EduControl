@@ -20,9 +20,14 @@ import org.springframework.stereotype.Service;
 public class ConfiguracaoService {
 
     private final ConfiguracaoRepository configuracaoRepository;
+    private final NotificacaoService notificacaoService;
 
-    public ConfiguracaoService(ConfiguracaoRepository configuracaoRepository) {
+    public ConfiguracaoService(
+            ConfiguracaoRepository configuracaoRepository,
+            NotificacaoService notificacaoService
+    ) {
         this.configuracaoRepository = configuracaoRepository;
+        this.notificacaoService = notificacaoService;
     }
 
     public RegrasEscolaResponseDTO buscarRegrasEscola() {
@@ -95,12 +100,22 @@ public class ConfiguracaoService {
             return "O idioma é obrigatório.";
         }
 
+        ConfiguracaoGeral anterior = configuracaoRepository.getConfiguracaoGeral();
+
+        boolean aparenciaAlterada = anterior == null
+                || !dto.getAparencia().equals(anterior.getAparencia());
+
         ConfiguracaoGeral config = new ConfiguracaoGeral(
                 dto.getAparencia(),
                 dto.getIdioma()
         );
 
         configuracaoRepository.salvarConfiguracaoGeral(config);
+
+        // Só avisa quando a aparência de fato mudou (salvar só o idioma não gera aviso).
+        if (aparenciaAlterada) {
+            notificacaoService.registrarAlteracaoAparencia(dto.getAparencia());
+        }
 
         return "Configurações gerais atualizadas com sucesso.";
     }

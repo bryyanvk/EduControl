@@ -8,10 +8,17 @@ import { Notificacoes } from "~/components/Notificacoes";
 import { Sidebar } from "~/components/Sidebar";
 import { useUsuario } from "~/hooks/useUsuario";
 
-import Lohran from "../../../public/lohran-avatar.png";
+import { fotoOuPadrao } from "~/utils/fotoPerfil";
 
 import { useEffect, useRef, useState } from "react";
-import { enviarParaIA } from "../../services/iaService";
+import {
+  aplicarAcaoExecutada,
+  cancelarAcaoIA,
+  confirmarAcaoIA,
+  perguntarIA,
+  type AcaoIA,
+  type RespostaIA,
+} from "../../services/iaService";
 
 export function IA() {
   const { perfil, usuario } = useUsuario();
@@ -23,12 +30,15 @@ export function IA() {
 
   const [autoScroll, setAutoScroll] = useState(true);
 
-  const [mensagens, setMensagens] = useState([
+  const [mensagens, setMensagens] = useState<
+    { tipo: string; texto: string; acao?: AcaoIA | null }[]
+  >([
     {
       tipo: "ia",
       texto: "Olá! 👋 Sou o assistente do EduControl. Como posso ajudar?"
     }
   ]);
+  const [decidindo, setDecidindo] = useState(false);
 
   const fimDoChat = useRef<HTMLDivElement>(null);
 
@@ -60,14 +70,18 @@ async function enviarMensagem() {
   setCarregando(true);
 
   try {
-    const resposta = await enviarParaIA(pergunta);
+    const retorno = await perguntarIA(pergunta);
+
+    // Digitar "sim" no chat também confirma: o back já devolve a ação executada.
+    aplicarAcaoExecutada(retorno.acaoExecutada);
 
     setMensagens((atuais) => {
-      const novasMensagens = [...atuais];
+      const novasMensagens = semAcoesPendentes(atuais);
 
       novasMensagens[novasMensagens.length - 1] = {
         tipo: "ia",
-        texto: resposta,
+        texto: retorno.resposta,
+        acao: retorno.acaoPendente ?? null,
       };
 
       return novasMensagens;
@@ -75,12 +89,15 @@ async function enviarMensagem() {
   } catch (erro) {
     console.error("Erro ao conectar com o backend:", erro);
 
+    const detalhe = erro instanceof Error && !(erro instanceof TypeError) ? erro.message : "";
+
     setMensagens((atuais) => {
       const novasMensagens = [...atuais];
 
       novasMensagens[novasMensagens.length - 1] = {
         tipo: "ia",
         texto:
+          detalhe ||
           "Não consegui me conectar ao EduControl. Verifique se o backend está funcionando e tente novamente.",
       };
 
@@ -89,6 +106,34 @@ async function enviarMensagem() {
   } finally {
     setCarregando(false);
   }
+}
+
+// Só a proposta mais recente pode ser decidida (o back mantém uma por usuário).
+function semAcoesPendentes(lista: { tipo: string; texto: string; acao?: AcaoIA | null }[]) {
+  return lista.map((m) => (m.acao ? { ...m, acao: null } : m));
+}
+
+async function decidirAcao(acao: AcaoIA, confirmar: boolean) {
+  if (decidindo) {
+    return;
+  }
+  setDecidindo(true);
+
+  let retorno: RespostaIA;
+  try {
+    retorno = confirmar ? await confirmarAcaoIA(acao.id) : await cancelarAcaoIA(acao.id);
+    if (confirmar) {
+      aplicarAcaoExecutada(retorno.acaoExecutada ?? acao);
+    }
+  } catch (erro) {
+    const texto = erro instanceof Error ? erro.message : "Não foi possível concluir a ação.";
+    setMensagens((atuais) => [...semAcoesPendentes(atuais), { tipo: "ia", texto }]);
+    setDecidindo(false);
+    return;
+  }
+
+  setMensagens((atuais) => [...semAcoesPendentes(atuais), { tipo: "ia", texto: retorno.resposta }]);
+  setDecidindo(false);
 }
 
 function limparConversa() {
@@ -140,7 +185,7 @@ function confirmarLimpeza() {
             <div className="app-avatar">
 
               <img
-                src={Lohran}
+                src={fotoOuPadrao(usuario?.fotoPerfil, usuario?.nome)}
                 alt="Profile"
                 className="h-full w-full rounded-full object-cover"
               />
@@ -237,6 +282,27 @@ function confirmarLimpeza() {
                       )}
                     </p>
 
+                    {msg.acao && (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          disabled={decidindo}
+                          onClick={() => decidirAcao(msg.acao as AcaoIA, true)}
+                          className="rounded-lg bg-[#0d4c5c] px-4 py-2 text-sm text-white hover:bg-[#0b3f4d] disabled:opacity-50"
+                        >
+                          Confirmar
+                        </button>
+                        <button
+                          type="button"
+                          disabled={decidindo}
+                          onClick={() => decidirAcao(msg.acao as AcaoIA, false)}
+                          className="rounded-lg border border-gray-600 px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 disabled:opacity-50"
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    )}
+
                   </div>
 
                   {msg.tipo === "usuario" && (
@@ -311,7 +377,9 @@ function confirmarLimpeza() {
                 onChange={(e) => setMensagem(e.target.value)}
                 onKeyDown={(e) => {
 
-                  if (e.key === "Enter") {
+                  // Enter envia; ignora Enter usado para confirmar composição (IME).
+                  if (e.key === "Enter" && !e.nativeEvent.isComposing && !e.shiftKey) {
+                    e.preventDefault();
                     enviarMensagem();
                   }
 

@@ -4,24 +4,18 @@ import { createPortal } from "react-dom";
 import { useNavigate } from "react-router";
 import { BellRing, X, Trash2 } from "lucide-react";
 import { notificacoesLigadas } from "~/utils/notificacoes";
+import { API, requisitar, type NotificacaoResponse } from "~/services/api";
+import { useUsuario } from "~/hooks/useUsuario";
 
-const API = "http://localhost:8080/edu";
 
-type Notificacao = {
-  id: string;
-  tipo: string;
-  titulo: string;
-  mensagem: string;
-  dataHora: string;
-  lida: boolean;
-  alunoId: number | null;
-  rota: string;
-};
+type Notificacao = NotificacaoResponse;
 
 export function Notificacoes({
   className = "text-gray-900 dark:text-[#f5fffc]",
 }: any) {
   const navigate = useNavigate();
+  // O back-end só permite que o administrador exclua notificações.
+  const podeExcluir = useUsuario().perfil === "administrador";
 
   const [aberto, setAberto] = useState(false);
   const [lista, setLista] = useState<Notificacao[]>([]);
@@ -51,8 +45,8 @@ export function Notificacoes({
 
     try {
       const [resLista, resContagem] = await Promise.all([
-        fetch(`${API}/notificacoes`),
-        fetch(`${API}/notificacoes/nao-lidas`),
+        requisitar(`${API}/notificacoes`),
+        requisitar(`${API}/notificacoes/nao-lidas`),
       ]);
 
       if (!resLista.ok || !resContagem.ok) {
@@ -77,6 +71,10 @@ export function Notificacoes({
 
   useEffect(() => {
     carregarNotificacoes();
+
+    // Disparado depois de uma ação da IA (ex.: mudar a aparência).
+    window.addEventListener("educontrol-notificacoes-atualizar", carregarNotificacoes);
+    return () => window.removeEventListener("educontrol-notificacoes-atualizar", carregarNotificacoes);
   }, []);
 
   function abrir() {
@@ -115,7 +113,7 @@ export function Notificacoes({
 
   async function marcarLida(id: string) {
     try {
-      const resposta = await fetch(
+      const resposta = await requisitar(
         `${API}/notificacoes/${encodeURIComponent(id)}/lida`,
         { method: "PUT" }
       );
@@ -142,7 +140,7 @@ export function Notificacoes({
 
   async function marcarTodas() {
     try {
-      const resposta = await fetch(`${API}/notificacoes/lidas`, {
+      const resposta = await requisitar(`${API}/notificacoes/lidas`, {
         method: "PUT",
       });
 
@@ -167,7 +165,7 @@ export function Notificacoes({
 
   async function excluirNotificacao(id: string) {
     try {
-      const resposta = await fetch(
+      const resposta = await requisitar(
         `${API}/notificacoes/${encodeURIComponent(id)}`,
         { method: "DELETE" }
       );
@@ -312,15 +310,17 @@ export function Notificacoes({
                           </span>
                         </button>
 
-                        <button
-                          type="button"
-                          onClick={() => excluirNotificacao(item.id)}
-                          title="Excluir notificação"
-                          aria-label="Excluir notificação"
-                          className="shrink-0 cursor-pointer text-gray-400 hover:text-red-500"
-                        >
-                          <Trash2 size={15} />
-                        </button>
+                        {podeExcluir && (
+                          <button
+                            type="button"
+                            onClick={() => excluirNotificacao(item.id)}
+                            title="Excluir notificação"
+                            aria-label="Excluir notificação"
+                            className="shrink-0 cursor-pointer text-gray-400 hover:text-red-500"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        )}
                       </div>
                     ))}
                   </div>

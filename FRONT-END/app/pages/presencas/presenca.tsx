@@ -28,7 +28,7 @@ import {
 import { contarPorStatus, presencaPorTurma } from "~/utils/resumoDia";
 import { formatarDataCurta } from "~/utils/formatacao";
 import { textoDaData } from "~/utils/filtros";
-import Lohran from "../../../public/lohran-avatar.png";
+import { fotoOuPadrao } from "~/utils/fotoPerfil";
 
 function converterStatus(status: string) {
   const mapa: Record<string, string> = {
@@ -81,7 +81,12 @@ export function Presenca() {
         if (!ativo) return;
 
         console.error("Erro ao carregar presenças:", erro);
-        setErroAPI("Não foi possível carregar os dados do servidor.");
+        setErroAPI(
+          erro instanceof TypeError
+            ? "Não foi possível carregar os dados do servidor."
+            : "Não foi possível carregar os dados: " +
+                (erro as Error).message
+        );
       } finally {
         if (ativo) {
           setCarregando(false);
@@ -230,7 +235,7 @@ export function Presenca() {
 
             <div className="app-avatar">
               <img
-                src={Lohran}
+                src={fotoOuPadrao(usuario?.fotoPerfil, usuario?.nome)}
                 alt="Profile"
                 className="h-full w-full rounded-full object-cover"
               />

@@ -4,6 +4,7 @@ package com.tcc.back_end.Repository;
 import com.tcc.back_end.Model.Aluno;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -26,6 +27,10 @@ public class AlunoRepository {
                 matricula.trim().toLowerCase(Locale.ROOT);
 
         return listaDeAlunos.stream().anyMatch(aluno -> {
+
+            if (aluno.isExcluido()) {
+                return false;
+            }
 
             if (aluno.getMatricula() == null) {
                 return false;
@@ -55,14 +60,25 @@ public class AlunoRepository {
         return "Aluno cadastrado!!";
     }
 
+    // Só alunos ativos: alunos excluídos não aparecem em listagens, buscas,
+    // presença nem faltas automáticas.
     public List<Aluno> getListaDeAlunos() {
-        return listaDeAlunos;
+
+        List<Aluno> ativos = new ArrayList<>();
+
+        for (Aluno a : listaDeAlunos) {
+            if (!a.isExcluido()) {
+                ativos.add(a);
+            }
+        }
+
+        return ativos;
     }
 
     public Aluno buscarAlunoPorId(int id) {
 
         for (Aluno a : listaDeAlunos) {
-            if (a.getId() == id) {
+            if (a.getId() == id && !a.isExcluido()) {
                 return a;
             }
         }
@@ -70,11 +86,47 @@ public class AlunoRepository {
         return null;
     }
 
+    private boolean mesmoUid(String uidCartao, String uid) {
+        return uidCartao != null
+                && uid != null
+                && uidCartao.trim().equalsIgnoreCase(uid.trim());
+    }
+
+    // Devolve o aluno ativo que já usa esse UID de cartão (ou null).
+    public Aluno buscarDonoDoCartao(String uid, Integer alunoIdIgnorado) {
+
+        if (uid == null || uid.isBlank()) {
+            return null;
+        }
+
+        for (Aluno a : listaDeAlunos) {
+
+            if (a.isExcluido() || a.getCartao() == null) {
+                continue;
+            }
+
+            if (alunoIdIgnorado != null
+                    && Objects.equals(a.getId(), alunoIdIgnorado)) {
+                continue;
+            }
+
+            if (mesmoUid(a.getCartao().getUid(), uid)) {
+                return a;
+            }
+        }
+
+        return null;
+    }
+
+    public boolean cartaoEmUso(String uid, Integer alunoIdIgnorado) {
+        return buscarDonoDoCartao(uid, alunoIdIgnorado) != null;
+    }
+
     public String updateAluno(int id, Aluno alunoUpdate) {
 
         for (Aluno a : listaDeAlunos) {
 
-            if (a.getId() == id) {
+            if (a.getId() == id && !a.isExcluido()) {
 
                 a.setNome(alunoUpdate.getNome());
                 a.setMatricula(alunoUpdate.getMatricula());
@@ -97,16 +149,15 @@ public class AlunoRepository {
         return "Aluno não encontrado!";
     }
 
+    // Exclusão lógica: o aluno continua guardado só para preservar o histórico
+    // de presença, mas deixa de existir para o resto do sistema.
     public String deleteAluno(int id) {
 
-        Iterator<Aluno> iterator = listaDeAlunos.iterator();
+        for (Aluno a : listaDeAlunos) {
 
-        while (iterator.hasNext()) {
-
-            Aluno a = iterator.next();
-
-            if (a.getId() == id) {
-                iterator.remove();
+            if (a.getId() == id && !a.isExcluido()) {
+                a.setExcluido(true);
+                a.setExcluidoEm(LocalDateTime.now());
                 return "Aluno deletado com sucesso!";
             }
         }
@@ -118,7 +169,8 @@ public class AlunoRepository {
 
         for (Aluno a : listaDeAlunos) {
 
-            if (a.getCartao() != null &&
+            if (!a.isExcluido() &&
+                    a.getCartao() != null &&
                     a.getCartao().getUid() != null &&
                     a.getCartao().getUid().equals(uid)) {
 
@@ -133,7 +185,8 @@ public class AlunoRepository {
 
         for (Aluno a : listaDeAlunos) {
 
-            if (a.getCartao() != null &&
+            if (!a.isExcluido() &&
+                    a.getCartao() != null &&
                     a.getCartao().getUid() != null &&
                     a.getCartao().getUid().equals(uid)) {
 
@@ -148,7 +201,8 @@ public class AlunoRepository {
 
         for (Aluno a : listaDeAlunos) {
 
-            if (a.getCartao() != null &&
+            if (!a.isExcluido() &&
+                    a.getCartao() != null &&
                     a.getCartao().getUid() != null &&
                     a.getCartao().getUid().equals(uid)) {
 

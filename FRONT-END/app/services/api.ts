@@ -1,5 +1,180 @@
 
-export const API = "http://localhost:8080/edu";
+export const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8080";
+export const API = `${API_BASE}/edu`;
+
+// Tipos que espelham os DTOs do back-end (pacote com.tcc.back_end).
+export type TipoAcesso = "ADMINISTRADOR" | "FUNCIONARIO" | "PROFESSOR";
+
+// DTO/LoginResponse (POST /edu/login).
+export type LoginResponse = {
+  id: number;
+  matricula: string;
+  nome: string;
+  email: string;
+  tipoAcesso: TipoAcesso;
+  cargo: string | null;
+  telefone: string | null;
+  fotoPerfil: string | null;
+};
+
+// DTO/TeamResponseDTO (GET /edu/listteam).
+export type FuncionarioResponse = {
+  id: number;
+  matricula: string;
+  nome: string;
+  dataNascimento: string | null;
+  cpf: string | null;
+  status: string;
+  tipoVinculo: string | null;
+  cargo: string;
+  setor: string;
+  dataAdmissao: string | null;
+  jornadaSemanal: number;
+  telefone: string;
+  email: string;
+  endereco: string | null;
+  tipoAcesso: TipoAcesso;
+  acessoAtivo: boolean;
+  fotoPerfil: string | null;
+  fimContrato: string | null;
+  ultimoAcesso: string | null;
+  dataCriacaoConta: string | null;
+  dataAlteracaoSenha: string | null;
+};
+
+// Model/Perfil (/edu/perfil/{id}).
+export type PerfilResponse = {
+  nome: string;
+  email: string;
+  cargo?: string;
+  telefone?: string;
+  fotoPerfil?: string;
+  acessoAtivo?: boolean;
+  dataCriacaoConta?: string;
+  dataAlteracaoSenha?: string;
+  ultimoAcesso?: string;
+};
+
+// Model/Notificacao (/edu/notificacoes).
+export type NotificacaoResponse = {
+  id: string;
+  tipo: string;
+  titulo: string;
+  mensagem: string;
+  dataHora: string;
+  lida: boolean;
+  alunoId: number | null;
+  rota: string;
+};
+
+const CHAVE_AUTORIZACAO = "educontrol:autorizacao";
+
+export function salvarCredenciais(identificador: string, senha: string) {
+  const bytes = new TextEncoder().encode(identificador + ":" + senha);
+  let binario = "";
+  for (let i = 0; i < bytes.length; i++) {
+    binario += String.fromCharCode(bytes[i]);
+  }
+  sessionStorage.setItem(CHAVE_AUTORIZACAO, "Basic " + btoa(binario));
+}
+
+export function limparCredenciais() {
+  sessionStorage.removeItem(CHAVE_AUTORIZACAO);
+}
+
+export function lerAutorizacao(): string | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  return sessionStorage.getItem(CHAVE_AUTORIZACAO);
+}
+
+// Todas as chamadas ao back-end passam por aqui para enviar as credenciais
+// da sessão (o back-end protege as rotas com HTTP Basic + perfis).
+export function requisitar(url: string, opcoes: any = {}) {
+  const autorizacao = lerAutorizacao();
+  const headers: any = { ...(opcoes.headers ?? {}) };
+
+  if (autorizacao !== null) {
+    headers["Authorization"] = autorizacao;
+  }
+
+  return fetch(url, { ...opcoes, headers }).then((res) => {
+    if (res.status === 401 && autorizacao !== null) {
+      limparCredenciais();
+      sessionStorage.removeItem("educontrol:usuario");
+      window.location.href = "/";
+    }
+    return res;
+  });
+}
+
+// Recuperação de senha (rotas públicas do back-end: /edu/senha/esqueci e /edu/senha/redefinir).
+async function chamarPublico(caminho: string, dados: any) {
+  const res = await fetch(`${API}${caminho}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(dados),
+  });
+  const texto = await res.text();
+
+  if (!res.ok) {
+    throw new Error(texto || "Não foi possível concluir a operação.");
+  }
+
+  return texto;
+}
+
+export function solicitarRecuperacaoSenha(email: string) {
+  return chamarPublico("/senha/esqueci", { email });
+}
+
+export function redefinirSenhaComCodigo(email: string, codigo: string, novaSenha: string) {
+  return chamarPublico("/senha/redefinir", { email, codigo, novaSenha });
+}
+
+export async function loginNoBack(identificador: string, senha: string): Promise<LoginResponse> {
+  const res = await fetch(`${API}/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ identificador, senha }),
+  });
+
+  const texto = await res.text();
+
+  if (!res.ok) {
+    throw new Error(texto || "Não foi possível entrar. Tente novamente.");
+  }
+
+  return JSON.parse(texto);
+}
+
+// Mensagem amigável para falhas de autenticação/permissão; senão usa o texto do back.
+function mensagemDoErroHttp(status: number, texto: string, padrao: string) {
+  if (status === 401) {
+    return "Sessão expirada ou credenciais inválidas. Entre novamente.";
+  }
+  if (status === 403) {
+    return "Seu perfil não tem permissão para esta ação.";
+  }
+  return texto || padrao;
+}
+
+// Texto para mostrar na tela: erro de rede usa o texto padrão; os demais, a mensagem real.
+export function textoDoErro(erro: any, padrao: string) {
+  if (erro instanceof TypeError || !erro?.message) {
+    return padrao;
+  }
+  return erro.message;
+}
+
+// Lê uma lista/objeto JSON e falha com mensagem clara se a resposta não for 2xx.
+async function lerJson(res: Response, padrao: string) {
+  if (!res.ok) {
+    throw new Error(mensagemDoErroHttp(res.status, await res.text(), padrao));
+  }
+  return res.json();
+}
 
 function chamar(caminho: string, metodo: string, dados: any) {
   const opcoes: any = { method: metodo };
@@ -9,11 +184,13 @@ function chamar(caminho: string, metodo: string, dados: any) {
     opcoes.body = JSON.stringify(dados);
   }
 
-  return fetch(`${API}${caminho}`, opcoes).then(async (res) => {
+  return requisitar(`${API}${caminho}`, opcoes).then(async (res) => {
     const texto = await res.text();
 
     if (!res.ok) {
-      throw new Error(texto || `Erro HTTP ${res.status}: ${res.statusText}`);
+      throw new Error(
+        mensagemDoErroHttp(res.status, texto, `Erro HTTP ${res.status}: ${res.statusText}`)
+      );
     }
 
     const mensagem = texto.toLowerCase();
@@ -39,19 +216,19 @@ function chamar(caminho: string, metodo: string, dados: any) {
 }
 
 export function buscarSalas() {
-  return fetch(`${API}/listsala`).then((res) => res.json());
+  return requisitar(`${API}/listsala`).then((res) => lerJson(res, "Erro ao buscar salas."));
 }
 
 export function buscarTurmas() {
-  return fetch(`${API}/listturma`).then((res) => res.json());
+  return requisitar(`${API}/listturma`).then((res) => lerJson(res, "Erro ao buscar turmas."));
 }
 
 export function buscarAlunos() {
-  return fetch(`${API}/listaln`).then((res) => res.json());
+  return requisitar(`${API}/listaln`).then((res) => lerJson(res, "Erro ao buscar alunos."));
 }
 
-export function buscarFuncionarios() {
-  return fetch(`${API}/listteam`).then(async (res) => {
+export function buscarFuncionarios(): Promise<FuncionarioResponse[]> {
+  return requisitar(`${API}/listteam`).then(async (res) => {
     if (!res.ok) {
       throw new Error("Erro ao buscar funcionários.");
     }
@@ -59,8 +236,8 @@ export function buscarFuncionarios() {
     return res.json();
   });
 }
-export function buscarPerfil(id: number) {
-  return fetch(`${API}/perfil/${id}`).then(async (res) => {
+export function buscarPerfil(id: number): Promise<PerfilResponse> {
+  return requisitar(`${API}/perfil/${id}`).then(async (res) => {
     if (!res.ok) {
       throw new Error("Erro ao buscar os dados do perfil.");
     }
@@ -117,7 +294,7 @@ export function excluirTurma(id: number) {
 }
 
 export function buscarPresencas() {
-  return fetch(`${API}/listpres`).then(async (res) => {
+  return requisitar(`${API}/listpres`).then(async (res) => {
     if (!res.ok) {
       throw new Error("Erro ao buscar registros de presença.");
     }
@@ -136,7 +313,7 @@ export function excluirAluno(id: number) {
 
 
 export function buscarRegrasEscola() {
-  return fetch(`${API}/config/regras`).then(async (res) => {
+  return requisitar(`${API}/config/regras`).then(async (res) => {
     if (!res.ok) throw new Error("Erro ao buscar regras da escola.");
     return res.json();
   });
@@ -147,7 +324,7 @@ export function salvarRegrasEscola(dados: any) {
 }
 
 export function buscarConfiguracaoGeral() {
-  return fetch(`${API}/config/geral`).then(async (res) => {
+  return requisitar(`${API}/config/geral`).then(async (res) => {
     if (!res.ok) throw new Error("Erro ao buscar configurações gerais.");
     return res.json();
   });
@@ -158,7 +335,7 @@ export function salvarConfiguracaoGeral(dados: any) {
 }
 
 export function buscarNotificacoes() {
-  return fetch(`${API}/config/notificacoes`).then(async (res) => {
+  return requisitar(`${API}/config/notificacoes`).then(async (res) => {
     if (!res.ok) throw new Error("Erro ao buscar notificações.");
     return res.json();
   });
@@ -169,7 +346,7 @@ export function salvarNotificacoes(dados: any) {
 }
 
 export function buscarConfiguracaoRFID() {
-  return fetch(`${API}/config/rfid`).then(async (res) => {
+  return requisitar(`${API}/config/rfid`).then(async (res) => {
     if (!res.ok) throw new Error("Erro ao buscar configuração RFID.");
     return res.json();
   });

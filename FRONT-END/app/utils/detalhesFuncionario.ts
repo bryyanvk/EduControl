@@ -1,3 +1,4 @@
+import { gravarNaoEssencial } from "~/utils/cookies";
 import { detalhesDoFuncionario } from "~/data/funcionariosFicticios";
 
 const CHAVE = "educontrol:funcionarios-contato";
@@ -32,7 +33,7 @@ export function salvarContatoFuncionario(funcionarioId: number, contato: any) {
   const edicoes = lerEdicoes();
   edicoes[funcionarioId] = contato;
   try {
-    localStorage.setItem(CHAVE, JSON.stringify(edicoes));
+    gravarNaoEssencial(CHAVE, JSON.stringify(edicoes));
   } catch {
     return;
   }

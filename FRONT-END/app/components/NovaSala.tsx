@@ -78,9 +78,8 @@ export function NovaSala({
       novosErros.capacidade = "A capacidade deve ficar entre 1 e 100.";
     }
 
-    if (form.turma === "Sem turma") {
-      novosErros.turma = "Selecione uma turma.";
-    } else {
+    // A turma é opcional: a sala pode ser criada sem turma e vinculada depois.
+    if (form.turma !== "Sem turma") {
       for (let i = 0; i < salasExistentes.length; i++) {
         if (
           salasExistentes[i].turma === form.turma &&
@@ -98,11 +97,17 @@ export function NovaSala({
       return;
     }
 
-    const turmaSelecionada = turmaPeloNome(form.turma, turmas);
+    let turmasDaSala: any[] = [];
 
-    if (!turmaSelecionada) {
-      setErros({ turma: "Não foi possível localizar essa turma no backend." });
-      return;
+    if (form.turma !== "Sem turma") {
+      const turmaSelecionada = turmaPeloNome(form.turma, turmas);
+
+      if (!turmaSelecionada) {
+        setErros({ turma: "Não foi possível localizar essa turma no backend." });
+        return;
+      }
+
+      turmasDaSala = [{ id: turmaSelecionada.id }];
     }
 
     const salaParaEnviar = {
@@ -110,11 +115,7 @@ export function NovaSala({
       capacidade: capacidade,
       andar: form.andar,
       status: statusParaBack(form.status),
-      turmas: [
-        {
-          id: turmaSelecionada.id,
-        },
-      ],
+      turmas: turmasDaSala,
     };
 
     setSalvando(true);

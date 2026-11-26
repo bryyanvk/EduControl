@@ -1,3 +1,4 @@
+import { gravarNaoEssencial } from "~/utils/cookies";
 import { alunosDeHoje } from "~/utils/registroHoje";
 import { textoDaData } from "~/utils/filtros";
 
@@ -81,7 +82,7 @@ export function lerLidas() {
 
 export function salvarLidas(lidas: string[]) {
   try {
-    localStorage.setItem(CHAVE_LIDAS, JSON.stringify(lidas));
+    gravarNaoEssencial(CHAVE_LIDAS, JSON.stringify(lidas));
   } catch {
     return;
   }

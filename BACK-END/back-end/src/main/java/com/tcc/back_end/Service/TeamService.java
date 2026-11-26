@@ -3,6 +3,7 @@ package com.tcc.back_end.Service;
 
 import com.tcc.back_end.DTO.TeamRequestDTO;
 import com.tcc.back_end.DTO.TeamResponseDTO;
+import com.tcc.back_end.Model.Enum.TipoAcesso;
 import com.tcc.back_end.Model.Team;
 import com.tcc.back_end.Repository.TeamRepository;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -19,8 +20,22 @@ public class TeamService {
     private final BCryptPasswordEncoder passwordEncoder =
             new BCryptPasswordEncoder();
 
-    public TeamService(TeamRepository teamRepository) {
+    private final NotificacaoService notificacaoService;
+
+    private static final String MENSAGEM_SENHA_LONGA =
+            "É necessário que a senha tenha no máximo 72 caracteres!";
+
+    // O BCrypt só aceita senhas de até 72 bytes.
+    private boolean senhaLonga(String senha) {
+        return senha.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 72;
+    }
+
+    public TeamService(
+            TeamRepository teamRepository,
+            NotificacaoService notificacaoService
+    ) {
         this.teamRepository = teamRepository;
+        this.notificacaoService = notificacaoService;
     }
 
     public String cadastrarTeam(TeamRequestDTO dto) {
@@ -57,8 +72,18 @@ public class TeamService {
             return "É necessário definir o tipo de acesso!";
         }
 
+        // O cadastro é público só para criar o primeiro usuário (ver SecurityConfig).
+        if (teamRepository.getListaTeam().isEmpty()
+                && dto.getTipoAcesso() != TipoAcesso.ADMINISTRADOR) {
+            return "É necessário que o primeiro usuário do sistema seja ADMINISTRADOR!";
+        }
+
         if (dto.getSenha() == null || dto.getSenha().isBlank()) {
             return "É necessário informar a senha!";
+        }
+
+        if (senhaLonga(dto.getSenha())) {
+            return MENSAGEM_SENHA_LONGA;
         }
 
         Team team = new Team();
@@ -80,9 +105,16 @@ public class TeamService {
         team.setTipoAcesso(dto.getTipoAcesso());
         team.setAcessoAtivo(true);
         team.setFotoPerfil(dto.getFotoPerfil());
+        team.setFimContrato(dto.getFimContrato());
         team.setDataCriacaoConta(LocalDateTime.now());
 
-        return teamRepository.cadastrarTeam(team);
+        String resultado = teamRepository.cadastrarTeam(team);
+
+        if ("Profissional cadastrado com sucesso!".equals(resultado)) {
+            notificacaoService.registrarNovoFuncionario(team);
+        }
+
+        return resultado;
     }
 
     public List<TeamResponseDTO> getListaTeam() {
@@ -169,6 +201,10 @@ public class TeamService {
             return "É necessário informar o tipo de acesso!";
         }
 
+        if (dto.getSenha() != null && senhaLonga(dto.getSenha())) {
+            return MENSAGEM_SENHA_LONGA;
+        }
+
         Team teamUpdate = new Team();
 
         teamUpdate.setMatricula(dto.getMatricula());
@@ -187,13 +223,24 @@ public class TeamService {
         teamUpdate.setTipoAcesso(dto.getTipoAcesso());
         teamUpdate.setAcessoAtivo(teamAtual.isAcessoAtivo());
         teamUpdate.setFotoPerfil(dto.getFotoPerfil());
+        teamUpdate.setFimContrato(dto.getFimContrato());
 
-        if (dto.getSenha() != null && !dto.getSenha().isBlank()) {
+        boolean senhaAlterada =
+                dto.getSenha() != null && !dto.getSenha().isBlank();
+
+        if (senhaAlterada) {
             teamUpdate.setSenha(passwordEncoder.encode(dto.getSenha()));
             teamUpdate.setDataAlteracaoSenha(LocalDateTime.now());
         }
 
-        return teamRepository.updateTeam(id, teamUpdate);
+        String resultado = teamRepository.updateTeam(id, teamUpdate);
+
+        if (senhaAlterada
+                && "Profissional atualizado com sucesso!".equals(resultado)) {
+            notificacaoService.registrarAlteracaoSenha(teamAtual);
+        }
+
+        return resultado;
     }
 
     public String deleteTeam(Integer id) {
@@ -239,6 +286,7 @@ public class TeamService {
         dto.setTipoAcesso(team.getTipoAcesso());
         dto.setAcessoAtivo(team.isAcessoAtivo());
         dto.setFotoPerfil(team.getFotoPerfil());
+        dto.setFimContrato(team.getFimContrato());
         dto.setUltimoAcesso(team.getUltimoAcesso());
         dto.setDataCriacaoConta(team.getDataCriacaoConta());
         dto.setDataAlteracaoSenha(team.getDataAlteracaoSenha());

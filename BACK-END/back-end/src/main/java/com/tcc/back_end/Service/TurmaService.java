@@ -12,14 +12,25 @@ import java.util.List;
 public class TurmaService {
     private TurmaRepository turmaRepository;
     private SalaRepository salaRepository;
+    private NotificacaoService notificacaoService;
 
-    public TurmaService(TurmaRepository turmaRepository, SalaRepository salaRepository) {
+    public TurmaService(
+            TurmaRepository turmaRepository,
+            SalaRepository salaRepository,
+            NotificacaoService notificacaoService
+    ) {
         this.turmaRepository = turmaRepository;
         this.salaRepository = salaRepository;
+        this.notificacaoService = notificacaoService;
     }
 
     public String CadastrarTurma(Turma turma){
-        return turmaRepository.CadastrarTurma(turma);
+
+        String resultado = turmaRepository.CadastrarTurma(turma);
+
+        notificacaoService.registrarNovaTurma(turma);
+
+        return resultado;
     }
 
     public List<Turma> getListaDeTurma(){

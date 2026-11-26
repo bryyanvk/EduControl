@@ -14,13 +14,13 @@ import { Notificacoes } from "~/components/Notificacoes";
 import { NovaSala } from "~/components/NovaSala";
 import { NovaTurma } from "~/components/NovaTurma";
 import { ConfirmarExclusao } from "~/components/ConfirmarExclusao";
-import { buscarSalas, buscarTurmas, editarSala, excluirSala, excluirTurma } from "~/services/api";
+import { buscarSalas, buscarTurmas, editarSala, excluirSala, excluirTurma, textoDoErro } from "~/services/api";
 import { salaDoBack, statusParaBack } from "~/utils/conversaoBack";
 import { Sidebar } from "~/components/Sidebar";
 import { useEffect, useState } from "react";
 import { filtrarSalas } from "~/utils/filtros";
 import { useUsuario } from "~/hooks/useUsuario";
-import Lohran from "../../../public/lohran-avatar.png";
+import { fotoOuPadrao } from "~/utils/fotoPerfil";
 
 
 export function Salas() {
@@ -51,8 +51,8 @@ export function Salas() {
         setErroBack("");
         setCarregando(false);
       })
-      .catch(() => {
-        setErroBack("Não foi possível carregar as salas. O back está rodando?");
+      .catch((erro: any) => {
+        setErroBack(textoDoErro(erro, "Não foi possível carregar as salas. O back está rodando?"));
         setCarregando(false);
       });
 
@@ -114,13 +114,14 @@ export function Salas() {
     const chamadas = [];
     for (let i = 0; i < todasSalas.length; i++) {
       const sala = todasSalas[i];
-      if (sala.turma === turma.nomeAntigo) {
+      const ids: any[] = sala.turmaIds ?? [];
+      if (ids.includes(turma.id)) {
         const salaParaEnviar = {
           numero: sala.numero,
           capacidade: parseInt(sala.capacidade, 10),
           andar: sala.andar,
           status: statusParaBack(sala.cor),
-          turma: { id: turma.id, nome: turma.nome, curso: turma.curso },
+          turmas: ids.map((id: any) => ({ id })),
         };
         chamadas.push(editarSala(sala.numero, salaParaEnviar));
       }
@@ -165,9 +166,9 @@ export function Salas() {
         setSalaParaExcluir(null);
         mostrarAviso(nome + " foi excluída.");
       })
-      .catch(() => {
+      .catch((erro: any) => {
         setSalaParaExcluir(null);
-        setErroAcao("Não foi possível excluir a sala. O back está rodando?");
+        setErroAcao(textoDoErro(erro, "Não foi possível excluir a sala. O back está rodando?"));
       });
   }
 
@@ -179,9 +180,9 @@ export function Salas() {
         setTurmaParaExcluir(null);
         mostrarAviso(nome + " foi excluída.");
       })
-      .catch(() => {
+      .catch((erro: any) => {
         setTurmaParaExcluir(null);
-        setErroAcao("Não foi possível excluir a turma. O back está rodando?");
+        setErroAcao(textoDoErro(erro, "Não foi possível excluir a turma. O back está rodando?"));
       });
   }
 
@@ -241,7 +242,7 @@ export function Salas() {
               <Notificacoes />
               <div className="app-avatar">
                 <img
-                  src={Lohran}
+                  src={fotoOuPadrao(usuario?.fotoPerfil, usuario?.nome)}
                   alt="Profile"
                   className="h-full w-full rounded-full object-cover"
                 />

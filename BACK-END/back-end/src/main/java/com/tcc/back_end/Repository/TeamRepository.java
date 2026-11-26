@@ -4,6 +4,7 @@ package com.tcc.back_end.Repository;
 import com.tcc.back_end.Model.Team;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -119,6 +120,7 @@ public class TeamRepository {
         team.setTipoAcesso(teamUpdate.getTipoAcesso());
         team.setAcessoAtivo(teamUpdate.isAcessoAtivo());
         team.setFotoPerfil(teamUpdate.getFotoPerfil());
+        team.setFimContrato(teamUpdate.getFimContrato());
 
         if (teamUpdate.getUltimoAcesso() != null) {
             team.setUltimoAcesso(teamUpdate.getUltimoAcesso());
@@ -133,6 +135,19 @@ public class TeamRepository {
         }
 
         return "Profissional atualizado com sucesso!";
+    }
+
+    public String atualizarSenha(Integer id, String senhaCriptografada) {
+        Team team = buscarTeamPorId(id);
+
+        if (team == null) {
+            return "Profissional não encontrado!";
+        }
+
+        team.setSenha(senhaCriptografada);
+        team.setDataAlteracaoSenha(LocalDateTime.now());
+
+        return "Senha atualizada com sucesso!";
     }
 
     public String alterarAcesso(Integer id, boolean acessoAtivo) {

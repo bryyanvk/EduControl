@@ -4,7 +4,7 @@ package com.tcc.back_end.DTO;
 import com.tcc.back_end.Model.Enum.TipoAcesso;
 import java.time.LocalDateTime;
 
-public class PerfilResponseDTO {
+public class    PerfilResponseDTO {
 
     private Integer id;
     private String nome;

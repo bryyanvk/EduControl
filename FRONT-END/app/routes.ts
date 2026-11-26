@@ -12,4 +12,6 @@ export default [
     route("salas", "routes/salas.tsx"),
     route("settings", "routes/settings.tsx"),
     route("team", "routes/team.tsx"),
+    route("em-construcao", "routes/emConstrucao.tsx"),
+    route("*", "routes/naoEncontrado.tsx"),
 ] satisfies RouteConfig;

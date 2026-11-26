@@ -1,16 +1,42 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { buscarFuncionarios, buscarSalas } from "~/services/api";
+import { funcionarioDoBack, salaDoBack } from "~/utils/conversaoBack";
 import { createPortal } from "react-dom";
 import { Search } from "lucide-react";
 import { buscarTudo } from "~/utils/buscaGlobal";
 
-export function BuscaGlobal({ podeVer, aoEscolher }: any) {
+export function BuscaGlobal({ podeVer, alunos = [], aoEscolher }: any) {
   const [texto, setTexto] = useState("");
   const [aberto, setAberto] = useState(false);
   const [indice, setIndice] = useState(0);
   const [posicao, setPosicao] = useState({ top: 0, left: 0, largura: 0 });
+  const [funcionarios, setFuncionarios] = useState<any[]>([]);
+  const [salas, setSalas] = useState<any[]>([]);
   const campo = useRef<HTMLInputElement>(null);
 
-  const resultados = buscarTudo(texto, podeVer);
+  // Vindo da página 404 ("Pesquisar"): abre o Início com o campo de busca em foco.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("pesquisar") === "1") {
+      campo.current?.focus();
+    }
+  }, []);
+
+  // Equipe e salas são buscadas no back-end a cada vez que o campo recebe foco,
+  // então novos cadastros aparecem sem recarregar a página.
+  function atualizarBase() {
+    if (podeVer.equipe) {
+      buscarFuncionarios()
+        .then((lista) => setFuncionarios(lista.map(funcionarioDoBack)))
+        .catch(() => setFuncionarios([]));
+    }
+    if (podeVer.salas) {
+      buscarSalas()
+        .then((lista) => setSalas(lista.map(salaDoBack)))
+        .catch(() => setSalas([]));
+    }
+  }
+
+  const resultados = buscarTudo(texto, podeVer, { alunos, funcionarios, salas });
   const mostrarLista = aberto && texto.trim().length >= 2;
 
   function marcarPosicao() {
@@ -63,6 +89,7 @@ export function BuscaGlobal({ podeVer, aoEscolher }: any) {
             marcarPosicao();
           }}
           onFocus={() => {
+            atualizarBase();
             setAberto(true);
             marcarPosicao();
           }}
@@ -85,7 +112,7 @@ export function BuscaGlobal({ podeVer, aoEscolher }: any) {
                 type="button"
                 role="option"
                 aria-selected={posicaoNaLista === indice}
-                key={resultado.tipo + resultado.titulo}
+                key={resultado.chave}
                 onClick={() => escolher(resultado)}
                 className={
                   posicaoNaLista === indice

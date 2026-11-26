@@ -70,6 +70,8 @@ export function alunoParaBack(form: any, turmas: any[]) {
     cpf: apenasDigitos(form.cpf),
     turmaId: turmaSelecionada.id,
     turno: form.turno,
+    responsavelNome: form.responsavelNome.trim(),
+    // grafia antiga, aceita por versões anteriores do back-end
     responsasvelNome: form.responsavelNome.trim(),
     parentesco: form.parentesco,
     responsavelTelefone: form.responsavelTelefone,
@@ -128,6 +130,40 @@ export function alunoDoBack(alunoBack: any) {
       responsavelTelefone: alunoBack.responsavelTelefone || "",
       responsavelEmail: textoOuTraco(alunoBack.responsavelEmail),
       endereco: textoOuTraco(alunoBack.endereco),
+    },
+  };
+}
+
+export function funcionarioDoBack(funcionario: any) {
+  const tipoVinculo = String(funcionario.tipoVinculo ?? "").toUpperCase();
+  const status = String(funcionario.status ?? "").toUpperCase();
+
+  return {
+    ...funcionario,
+    statusBackend: funcionario.status,
+    vinculo:
+      tipoVinculo === "EFETIVO"
+        ? "Efetivo"
+        : tipoVinculo === "CONTRATADO"
+          ? "Contratado"
+          : funcionario.tipoVinculo ?? "Não informado",
+    status:
+      status === "ATIVO"
+        ? "Ativo"
+        : status === "INATIVO"
+          ? "Inativo"
+          : status === "BLOQUEADO"
+            ? "Bloqueado"
+            : funcionario.status ?? "Não informado",
+    detalhes: {
+      cpf: funcionario.cpf,
+      dataNascimento: funcionario.dataNascimento,
+      dataAdmissao: funcionario.dataAdmissao,
+      jornada: `${funcionario.jornadaSemanal ?? 0} horas semanais`,
+      telefone: funcionario.telefone,
+      email: funcionario.email,
+      endereco: funcionario.endereco,
+      fimContrato: funcionario.fimContrato,
     },
   };
 }

@@ -29,7 +29,7 @@ import {
   calcularFaltasConsecutivas,
   calcularSituacao,
 } from "~/utils/indicadoresFrequencia";
-import Lohran from "../../../public/lohran-avatar.png";
+import { fotoOuPadrao } from "~/utils/fotoPerfil";
 
 import {
   LineChart,
@@ -149,7 +149,8 @@ export function Welcome() {
           const temRegistrosNoAno = registrosDoAluno.some(
             (registro: any) =>
               dataISO(registro.data).startsWith(hoje.slice(0, 4)) &&
-              statusDaPresenca(registro.status) !== "Pendente",
+              statusDaPresenca(registro.status) !== "Pendente" &&
+              statusDaPresenca(registro.status) !== "Justificado",
           );
 
           const faltasConsecutivas = calcularFaltasConsecutivas(
@@ -356,6 +357,7 @@ export function Welcome() {
 
           <div>
             <BuscaGlobal
+              alunos={alunos}
               podeVer={{
                 alunos: pode("pagina.alunos"),
                 equipe: pode("pagina.team"),
@@ -370,7 +372,7 @@ export function Welcome() {
 
             <div className="app-avatar">
               <img
-                src={Lohran}
+                src={fotoOuPadrao(usuario?.fotoPerfil, usuario?.nome)}
                 alt={usuario?.nome ?? "Usuário"}
                 className="h-full w-full rounded-full object-cover"
               />

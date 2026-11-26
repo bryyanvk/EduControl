@@ -17,41 +17,8 @@ import { NovoFuncionario } from "~/components/NovoFuncionario";
 import { Sidebar } from "~/components/Sidebar";
 import { useUsuario } from "~/hooks/useUsuario";
 import { buscarFuncionarios } from "~/services/api";
-import Lohran from "../../../public/lohran-avatar.png";
-
-function formatarFuncionario(funcionario: any) {
-  const tipoVinculo = String(funcionario.tipoVinculo ?? "").toUpperCase();
-  const status = String(funcionario.status ?? "").toUpperCase();
-
-  return {
-    ...funcionario,
-    statusBackend: funcionario.status,
-    vinculo:
-      tipoVinculo === "EFETIVO"
-        ? "Efetivo"
-        : tipoVinculo === "CONTRATADO"
-          ? "Contratado"
-          : funcionario.tipoVinculo ?? "Não informado",
-    status:
-      status === "ATIVO"
-        ? "Ativo"
-        : status === "INATIVO"
-          ? "Inativo"
-          : status === "BLOQUEADO"
-            ? "Bloqueado"
-            : funcionario.status ?? "Não informado",
-    detalhes: {
-      cpf: funcionario.cpf,
-      dataNascimento: funcionario.dataNascimento,
-      dataAdmissao: funcionario.dataAdmissao,
-      jornada: `${funcionario.jornadaSemanal ?? 0} horas semanais`,
-      telefone: funcionario.telefone,
-      email: funcionario.email,
-      endereco: funcionario.endereco,
-      fimContrato: funcionario.fimContrato,
-    },
-  };
-}
+import { funcionarioDoBack } from "~/utils/conversaoBack";
+import { fotoOuPadrao } from "~/utils/fotoPerfil";
 
 function normalizar(valor: any) {
   return String(valor ?? "")
@@ -90,7 +57,7 @@ export function Team() {
         throw new Error("O backend não retornou uma lista válida de funcionários.");
       }
 
-      setFuncionarios(resposta.map(formatarFuncionario));
+      setFuncionarios(resposta.map(funcionarioDoBack));
     } catch (error) {
       setErro(
         error instanceof Error
@@ -237,7 +204,7 @@ export function Team() {
 
             <div className="app-avatar">
               <img
-                src={Lohran}
+                src={fotoOuPadrao(usuario?.fotoPerfil, usuario?.nome)}
                 alt="Profile"
                 className="h-full w-full rounded-full object-cover"
               />

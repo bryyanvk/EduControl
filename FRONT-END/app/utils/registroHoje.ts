@@ -3,7 +3,7 @@ import { todosOsAlunos } from "~/utils/alunosCadastrados";
 import { PRESENCAS_FICTICIAS } from "~/data/presencasFicticias";
 import { textoDaData } from "~/utils/filtros";
 
-const API = "http://localhost:8080/edu";
+import { API, requisitar } from "~/services/api";
 
 export interface AlunoAPI {
   id: number;
@@ -35,6 +35,14 @@ export interface PresencaAPI {
 async function tratarResposta(resposta: Response) {
   if (!resposta.ok) {
     const mensagem = await resposta.text();
+
+    if (resposta.status === 403) {
+      throw new Error("Seu perfil não tem permissão para esta ação.");
+    }
+
+    if (resposta.status === 401) {
+      throw new Error("Sessão expirada ou credenciais inválidas. Entre novamente.");
+    }
 
     throw new Error(
       mensagem || `Erro HTTP ${resposta.status}`
@@ -71,7 +79,7 @@ export function converterStatus(status: string) {
 // BUSCAR ALUNOS NO BACKEND
 
 export async function buscarAlunosAPI(): Promise<AlunoAPI[]> {
-  const resposta = await fetch(`${API}/listaln`);
+  const resposta = await requisitar(`${API}/listaln`);
 
   await tratarResposta(resposta);
 
@@ -81,7 +89,7 @@ export async function buscarAlunosAPI(): Promise<AlunoAPI[]> {
 // BUSCAR PRESENÇAS NO BACKEND
 
 export async function buscarPresencasAPI(): Promise<PresencaAPI[]> {
-  const resposta = await fetch(`${API}/listpres`);
+  const resposta = await requisitar(`${API}/listpres`);
 
   await tratarResposta(resposta);
 
@@ -108,7 +116,7 @@ export async function registrarPresencaManualAPI(
     throw new Error(`Status inválido: ${status}`);
   }
 
-  const resposta = await fetch(`${API}/manual`, {
+  const resposta = await requisitar(`${API}/manual`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -129,7 +137,7 @@ export async function registrarPresencaManualAPI(
 // REGISTRAR PRESENÇA PELO RFID
 
 export async function registrarPresencaRFIDAPI(uid: string) {
-  const resposta = await fetch(`${API}/rfid`, {
+  const resposta = await requisitar(`${API}/rfid`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -145,7 +153,7 @@ export async function registrarPresencaRFIDAPI(uid: string) {
 // CONSULTAR ALUNO PELO CARTÃO
 
 export async function buscarAlunoPorCartaoAPI(uid: string) {
-  const resposta = await fetch(
+  const resposta = await requisitar(
     `${API}/enc/${encodeURIComponent(uid)}`
   );
 

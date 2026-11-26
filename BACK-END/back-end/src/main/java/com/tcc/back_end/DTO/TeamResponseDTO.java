@@ -25,6 +25,7 @@ public class TeamResponseDTO {
     private TipoAcesso tipoAcesso;
     private boolean acessoAtivo;
     private String fotoPerfil;
+    private LocalDate fimContrato;
     private LocalDateTime ultimoAcesso;
     private LocalDateTime dataCriacaoConta;
     private LocalDateTime dataAlteracaoSenha;
@@ -166,6 +167,14 @@ public class TeamResponseDTO {
 
     public void setFotoPerfil(String fotoPerfil) {
         this.fotoPerfil = fotoPerfil;
+    }
+
+    public LocalDate getFimContrato() {
+        return fimContrato;
+    }
+
+    public void setFimContrato(LocalDate fimContrato) {
+        this.fimContrato = fimContrato;
     }
 
     public LocalDateTime getUltimoAcesso() {

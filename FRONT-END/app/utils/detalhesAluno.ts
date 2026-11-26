@@ -1,3 +1,4 @@
+import { gravarNaoEssencial } from "~/utils/cookies";
 import { detalhesDoAluno } from "~/data/detalhesFicticios";
 import { presencasAtuais } from "~/utils/registroHoje";
 
@@ -35,7 +36,7 @@ export function salvarContato(alunoId: number, contato: any) {
   const edicoes = lerEdicoes();
   edicoes[alunoId] = contato;
   try {
-    localStorage.setItem(CHAVE, JSON.stringify(edicoes));
+    gravarNaoEssencial(CHAVE, JSON.stringify(edicoes));
   } catch {
     return;
   }

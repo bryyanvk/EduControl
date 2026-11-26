@@ -3,6 +3,9 @@ package com.tcc.back_end.Service;
 
 import com.tcc.back_end.Model.Aluno;
 import com.tcc.back_end.Model.Notificacao;
+import com.tcc.back_end.Model.Sala;
+import com.tcc.back_end.Model.Team;
+import com.tcc.back_end.Model.Turma;
 import com.tcc.back_end.Model.RegistroPresença;
 import com.tcc.back_end.Model.Enum.StatusPresenca;
 import com.tcc.back_end.Model.Enum.TipoMarcacao;
@@ -23,6 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicLong;
 
 @Service
 public class NotificacaoService {
@@ -32,6 +36,8 @@ public class NotificacaoService {
 
     private static final LocalTime HORARIO_FALTAS =
             LocalTime.of(8, 40);
+
+    private static final AtomicLong SEQUENCIA = new AtomicLong();
 
     private final AlunoRepository alunoRepository;
     private final PresencaRepository presencaRepository;
@@ -71,6 +77,120 @@ public class NotificacaoService {
         );
 
         notificacaoStore.salvar(notificacao);
+    }
+
+    // ==============================
+    // NOTIFICAÇÕES AUTOMÁTICAS DE EVENTOS
+    // ==============================
+
+    // Id único por ocorrência: cada evento gera a sua própria notificação.
+    private String novoId(String prefixo) {
+        return prefixo + "_" + System.currentTimeMillis()
+                + "_" + SEQUENCIA.incrementAndGet();
+    }
+
+    private void registrarEvento(
+            String prefixoId,
+            String tipo,
+            String titulo,
+            String mensagem,
+            Integer alunoId,
+            String rota
+    ) {
+
+        notificacaoStore.salvar(new Notificacao(
+                novoId(prefixoId),
+                tipo,
+                titulo,
+                mensagem,
+                LocalDateTime.now(ZONA_ESCOLAR),
+                false,
+                alunoId,
+                rota
+        ));
+    }
+
+    public void registrarNovoFuncionario(Team team) {
+
+        if (team == null) {
+            return;
+        }
+
+        registrarEvento(
+                "NOVO_FUNCIONARIO",
+                "NOVO_FUNCIONARIO",
+                "Novo funcionário cadastrado",
+                "O funcionário " + team.getNome()
+                        + " foi cadastrado no sistema.",
+                null,
+                "/team"
+        );
+    }
+
+    public void registrarNovaSala(Sala sala) {
+
+        if (sala == null) {
+            return;
+        }
+
+        registrarEvento(
+                "NOVA_SALA",
+                "NOVA_SALA",
+                "Nova sala cadastrada",
+                "A sala " + sala.getNumero() + " foi cadastrada no sistema.",
+                null,
+                "/salas"
+        );
+    }
+
+    public void registrarNovaTurma(Turma turma) {
+
+        if (turma == null) {
+            return;
+        }
+
+        registrarEvento(
+                "NOVA_TURMA",
+                "NOVA_TURMA",
+                "Nova turma cadastrada",
+                "A turma " + turma.getNome() + " foi cadastrada no sistema.",
+                null,
+                "/salas"
+        );
+    }
+
+    public void registrarAlteracaoSenha(Team team) {
+
+        if (team == null) {
+            return;
+        }
+
+        registrarEvento(
+                "SENHA_ALTERADA",
+                "SENHA_ALTERADA",
+                "Senha alterada",
+                "A senha de " + team.getNome() + " foi alterada.",
+                null,
+                "/perfil"
+        );
+    }
+
+    public void registrarAlteracaoAparencia(String aparencia) {
+
+        registrarEvento(
+                "APARENCIA_ALTERADA",
+                "APARENCIA_ALTERADA",
+                "Aparência alterada",
+                "A aparência do sistema foi alterada para \""
+                        + aparencia + "\".",
+                null,
+                "/settings"
+        );
+    }
+
+    // Alertas de faltas deixam de fazer sentido quando o aluno é excluído.
+    public void removerAlertasDoAluno(int alunoId) {
+        limparAlertasDoAluno(alunoId, "");
     }
 
     public void atualizarNotificacoes() {
@@ -244,13 +364,20 @@ public class NotificacaoService {
             Aluno aluno,
             String prefixoId
     ) {
+        limparAlertasDoAluno(aluno.getId(), prefixoId);
+    }
+
+    private void limparAlertasDoAluno(
+            int alunoId,
+            String prefixoId
+    ) {
 
         notificacaoStore.excluir(
-                prefixoId + "FALTAS_4_" + aluno.getId()
+                prefixoId + "FALTAS_4_" + alunoId
         );
 
         notificacaoStore.excluir(
-                prefixoId + "ALUNO_RISCO_" + aluno.getId()
+                prefixoId + "ALUNO_RISCO_" + alunoId
         );
     }
 
